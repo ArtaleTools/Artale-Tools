@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>槍手抽獎轉盤</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; padding-top: 50px; }
+        .card { background: #2d2d2d; padding: 25px; border-radius: 15px; border: 2px solid #ff4757; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #ff4757; text-align: center; margin: 0 0 20px; letter-spacing: 2px; }
+        .group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; color: #a4b0be; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1e1e1e; color: #ff4757; font-weight: bold; font-size: 16px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff4757; border: none; color: white; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 8px; margin-top: 10px; transition: 0.2s; }
+        button:hover { background: #ff6b81; }
+        #display { font-size: 42px; color: #f1c40f; text-align: center; margin: 20px 0; font-family: monospace; font-weight: bold; }
+        #res { margin-top: 15px; border-top: 1px dashed #555; padding-top: 15px; }
+        .tag { display: inline-block; background: #ff4757; padding: 5px 12px; margin: 4px; border-radius: 4px; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🎯 槍手抽獎轉盤</h2>
+    
+    <div class="group">
+        <label>數字範圍 (最小)：</label>
+        <input type="number" id="min" value="1">
+    </div>
+    
+    <div class="group">
+        <label>數字範圍 (最大)：</label>
+        <input type="number" id="max" value="100">
+    </div>
+    
+    <div class="group">
+        <label>抽取數量 (組數)：</label>
+        <input type="number" id="qty" value="1">
+    </div>
+    
+    <div id="display">READY</div>
+    <button onclick="draw()">開始公平抽獎</button>
+    
+    <div id="res">
+        <div style="color: #a4b0be; font-size: 14px; margin-bottom: 8px;">得獎名單：</div>
+        <div id="list"></div>
+    </div>
+</div>
+
+<script>
+    function draw() {
+        const vMin = parseInt(document.getElementById('min').value), 
+              vMax = parseInt(document.getElementById('max').value), 
+              n = parseInt(document.getElementById('qty').value),
+              list = document.getElementById('list'),
+              disp = document.getElementById('display');
+
+        // 參數驗證
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0) return alert("請輸入正確的數字範圍！");
+        if (n > (vMax - vMin + 1)) return alert("抽取數量不能超過總範圍！");
+
+        // 建立數字池 (例如 1~100)
+        let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
+
+        // Fisher-Yates Shuffle 公平洗牌
+        for (let i = pool.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+
+        const winners = pool.slice(0, n).sort((a, b) => a - b);
+        list.innerHTML = "";
+        
+        // 跑號動畫效果
+        let count = 0;
+        const timer = setInterval(() => {
+            disp.innerText = Math.floor(Math.random() * (vMax - vMin + 1)) + vMin;
+            if (++count > 15) {
+                clearInterval(timer);
+                disp.innerText = "BINGO!";
+                winners.forEach(w => {
+                    list.innerHTML += `<span class="tag">${w}</span>`;
+                });
+            }
+        }, 50);
+    }
+</script>
+
+</body>
+</html>
