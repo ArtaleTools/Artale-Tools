@@ -29,7 +29,6 @@
             50% { transform: scale(1.05); opacity: 1; }
         }
 
-        /* 震動特效 */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             25% { transform: translate(-2px, -1px) rotate(-1deg); }
@@ -49,6 +48,17 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden;
+        }
+
+        /* 彩帶畫布容器 */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
         }
 
         .container {
@@ -105,9 +115,6 @@
             border-radius: 15px;
         }
 
-        .group { text-align: left; }
-        .group.full { grid-column: span 2; }
-
         label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
 
         input { 
@@ -149,10 +156,6 @@
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
         }
 
-        .win-numbers {
-            font-size: 52px;
-        }
-
         button { 
             width: 100%; 
             padding: 18px; 
@@ -180,13 +183,14 @@
         .footer-note {
             font-size: 12px;
             color: #666;
-            letter-spacing: 1px;
             margin-top: 10px;
             opacity: 0.6;
         }
     </style>
 </head>
 <body>
+
+<canvas id="confetti-canvas"></canvas>
 
 <div class="container">
     <div class="card" id="mainCard">
@@ -202,7 +206,7 @@
                 <label>範圍(大)</label>
                 <input type="number" id="max" value="50">
             </div>
-            <div class="group full">
+            <div class="group" style="grid-column: span 2; margin-top: 10px;">
                 <label>抽取數量</label>
                 <input type="number" id="qty" value="1">
             </div>
@@ -218,6 +222,53 @@
 
 <script>
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let pieces = [];
+
+    // 初始化畫布大小
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // 彩帶特效邏輯
+    function fireConfetti() {
+        pieces = [];
+        const colors = ['#ff4757', '#ffffff', '#a32d38', '#ff6b81'];
+        for (let i = 0; i < 150; i++) {
+            pieces.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                rotation: Math.random() * 360,
+                color: colors[Math.floor(Math.random() * colors.colors)], // 下方修正
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: Math.random() * 10 + 5,
+                speed: Math.random() * 8 + 5,
+                osc: Math.random() * 2
+            });
+        }
+        updateConfetti();
+    }
+
+    function updateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach((p, i) => {
+            p.y += p.speed;
+            p.x += Math.sin(p.y / 30) * p.osc;
+            p.rotation += 5;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            ctx.restore();
+        });
+        pieces = pieces.filter(p => p.y < canvas.height);
+        if (pieces.length > 0) requestAnimationFrame(updateConfetti);
+    }
 
     function playTick(freq, type, duration) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -245,16 +296,12 @@
 
         btn.disabled = true;
         
-        // --- 升級版抽獎核心：Fisher-Yates Shuffle ---
         let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
-        
         for (let i = pool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [pool[i], pool[j]] = [pool[j], pool[i]]; // 交換位置
+            [pool[i], pool[j]] = [pool[j], pool[i]];
         }
-        
         const winners = pool.slice(0, n).sort((a,b)=>a-b);
-        // ------------------------------------------
 
         let count = 0;
         let speed = 50;
@@ -262,7 +309,6 @@
         function roll() {
             count++;
             disp.innerHTML = `<span style="font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${Math.floor(Math.random() * (vMax - vMin + 1)) + vMin}</span>`;
-            
             playTick(400 + count * 15, 'square', 0.05); 
             
             if (count > 25) card.style.animation = "shake 0.1s infinite";
@@ -272,13 +318,15 @@
                 if (count > 35) speed += 20;
             } else {
                 card.style.animation = "none";
-                
                 disp.innerHTML = `
                     <div class="win-text">恭喜中獎！</div>
                     <div class="win-numbers lucky-text">${winners.join('、')}</div>
                 `;
-                
                 playTick(150, 'sawtooth', 0.5);
+                
+                // 啟動彩帶噴發！
+                fireConfetti();
+                
                 btn.disabled = false;
             }
         }
