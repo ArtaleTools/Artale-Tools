@@ -51,8 +51,6 @@
             overflow: hidden;
         }
 
-        #youtube-player { position: absolute; top: -100px; left: -100px; width: 1px; height: 1px; pointer-events: none; }
-
         .container {
             perspective: 1000px;
             width: 90%;
@@ -72,7 +70,6 @@
             position: relative;
         }
 
-        /* 關鍵：完全同步的文字效果 */
         .lucky-text { 
             background: linear-gradient(110deg, #ff4757 25%, #ffffff 45%, #ff4757 50%, #ffffff 55%, #ff4757 75%);
             background-size: 200% auto;
@@ -191,8 +188,6 @@
 </head>
 <body>
 
-<div id="youtube-player"></div>
-
 <div class="container">
     <div class="card" id="mainCard">
         <h2>Artale 繁中槍手群</h2>
@@ -222,19 +217,8 @@
 </div>
 
 <script>
-    let player;
+    // 只保留音效合成器邏輯
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    var tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.getElementsByTagName('head')[0].appendChild(tag);
-
-    function onYouTubeIframeAPIReady() {
-        player = new YT.Player('youtube-player', {
-            videoId: 'IivB75rZ02w',
-            playerVars: { 'autoplay': 0, 'controls': 0 }
-        });
-    }
 
     function playTick(freq, type, duration) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -260,7 +244,6 @@
 
         if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
 
-        if (player) { player.setVolume(50); player.playVideo(); }
         btn.disabled = true;
         
         let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
@@ -271,8 +254,9 @@
         
         function roll() {
             count++;
-            // 滾動中的數字保持一般白色發光，避免視覺太亂
             disp.innerHTML = `<span style="font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${Math.floor(Math.random() * (vMax - vMin + 1)) + vMin}</span>`;
+            
+            // 保留抽獎音效
             playTick(400 + count * 15, 'square', 0.05); 
             
             if (count > 25) card.style.animation = "shake 0.1s infinite";
@@ -283,15 +267,14 @@
             } else {
                 card.style.animation = "none";
                 
-                // 這裡：中獎號碼完全同步 lucky-text 的 CSS 類別
                 disp.innerHTML = `
                     <div class="win-text">恭喜中獎！</div>
                     <div class="win-numbers lucky-text">${winners.join('、')}</div>
                 `;
                 
+                // 保留結算音效
                 playTick(150, 'sawtooth', 0.5);
                 btn.disabled = false;
-                setTimeout(() => { if (player) player.setVolume(20); }, 5000);
             }
         }
         roll();
