@@ -12,13 +12,11 @@
             --card-bg: #1e1e26;
         }
 
-        /* 進場動畫 */
         @keyframes cardEntrance {
             from { opacity: 0; transform: translateY(30px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* 統一的流光動畫 */
         @keyframes shine {
             0% { background-position: -200% center; }
             100% { background-position: 200% center; }
@@ -50,7 +48,6 @@
             overflow: hidden;
         }
 
-        /* 彩帶畫布容器 */
         #confetti-canvas {
             position: fixed;
             top: 0;
@@ -169,6 +166,7 @@
             box-shadow: 0 6px 0 #a32d38;
             transition: all 0.2s;
             margin-bottom: 20px;
+            letter-spacing: 1px;
         }
 
         button:hover:not(:disabled) {
@@ -178,7 +176,13 @@
         }
 
         button:active { transform: translateY(3px); box-shadow: 0 2px 0 #a32d38; }
-        button:disabled { background: #444; box-shadow: none; transform: none; opacity: 0.7; }
+        button:disabled { 
+            background: #444; 
+            box-shadow: none; 
+            transform: translateY(3px); 
+            opacity: 0.8; 
+            cursor: not-allowed;
+        }
 
         .footer-note {
             font-size: 12px;
@@ -226,7 +230,6 @@
     const ctx = canvas.getContext('2d');
     let pieces = [];
 
-    // 初始化畫布大小
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -234,7 +237,6 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // 彩帶特效邏輯
     function fireConfetti() {
         pieces = [];
         const colors = ['#ff4757', '#ffffff', '#a32d38', '#ff6b81'];
@@ -243,7 +245,6 @@
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height - canvas.height,
                 rotation: Math.random() * 360,
-                color: colors[Math.floor(Math.random() * colors.colors)], // 下方修正
                 color: colors[Math.floor(Math.random() * colors.length)],
                 size: Math.random() * 10 + 5,
                 speed: Math.random() * 8 + 5,
@@ -294,7 +295,9 @@
 
         if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
 
+        // 優化：變更按鈕文字與狀態
         btn.disabled = true;
+        btn.innerText = "輪盤轉動中...";
         
         let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
         for (let i = pool.length - 1; i > 0; i--) {
@@ -323,11 +326,11 @@
                     <div class="win-numbers lucky-text">${winners.join('、')}</div>
                 `;
                 playTick(150, 'sawtooth', 0.5);
-                
-                // 啟動彩帶噴發！
                 fireConfetti();
                 
+                // 優化：恢復按鈕文字
                 btn.disabled = false;
+                btn.innerText = "再次啟動抽獎";
             }
         }
         roll();
