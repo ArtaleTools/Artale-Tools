@@ -217,7 +217,6 @@
 </div>
 
 <script>
-    // 只保留音效合成器邏輯
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function playTick(freq, type, duration) {
@@ -246,8 +245,16 @@
 
         btn.disabled = true;
         
+        // --- 升級版抽獎核心：Fisher-Yates Shuffle ---
         let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
-        const winners = pool.sort(() => Math.random() - 0.5).slice(0, n).sort((a,b)=>a-b);
+        
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]]; // 交換位置
+        }
+        
+        const winners = pool.slice(0, n).sort((a,b)=>a-b);
+        // ------------------------------------------
 
         let count = 0;
         let speed = 50;
@@ -256,7 +263,6 @@
             count++;
             disp.innerHTML = `<span style="font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${Math.floor(Math.random() * (vMax - vMin + 1)) + vMin}</span>`;
             
-            // 保留抽獎音效
             playTick(400 + count * 15, 'square', 0.05); 
             
             if (count > 25) card.style.animation = "shake 0.1s infinite";
@@ -272,7 +278,6 @@
                     <div class="win-numbers lucky-text">${winners.join('、')}</div>
                 `;
                 
-                // 保留結算音效
                 playTick(150, 'sawtooth', 0.5);
                 btn.disabled = false;
             }
