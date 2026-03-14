@@ -102,6 +102,7 @@
             opacity: 0.8;
         }
 
+        /* --- 增減控制組優化 --- */
         .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -112,21 +113,70 @@
             border-radius: 15px;
         }
 
-        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
+        .input-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #121217;
+            border-radius: 12px;
+            border: 1px solid #444;
+            padding: 2px;
+            transition: border-color 0.3s;
+        }
+
+        .input-control:focus-within {
+            border-color: var(--primary);
+        }
+
+        .stepper-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 20px;
+            font-weight: bold;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .stepper-btn:hover {
+            background: rgba(255, 71, 87, 0.1);
+        }
+
+        .stepper-btn:active {
+            transform: scale(0.9);
+        }
 
         input { 
-            width: 100%; 
-            padding: 10px; 
-            border-radius: 10px; 
-            border: 1px solid #444; 
-            background: #121217; 
+            width: 40px; 
+            flex-grow: 1;
+            padding: 8px 0; 
+            border: none;
+            background: transparent; 
             color: #ffffff; 
             font-weight: bold; 
-            font-size: 16px; 
-            box-sizing: border-box; 
+            font-size: 18px; 
+            text-align: center; 
             outline: none;
         }
 
+        /* 隱藏原生箭頭 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; }
+
+        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; text-align: left; }
+
+        /* --- 顯示與按鈕 --- */
         #display { 
             font-size: 60px; 
             color: #ffffff; 
@@ -153,7 +203,7 @@
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
         }
 
-        button { 
+        .draw-btn { 
             width: 100%; 
             padding: 18px; 
             background: linear-gradient(45deg, #ff4757, #ff6b81);
@@ -169,20 +219,14 @@
             letter-spacing: 1px;
         }
 
-        button:hover:not(:disabled) {
+        .draw-btn:hover:not(:disabled) {
             filter: brightness(1.1);
             transform: translateY(-2px);
             box-shadow: 0 8px 0 #a32d38;
         }
 
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #a32d38; }
-        button:disabled { 
-            background: #444; 
-            box-shadow: none; 
-            transform: translateY(3px); 
-            opacity: 0.8; 
-            cursor: not-allowed;
-        }
+        .draw-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #a32d38; }
+        .draw-btn:disabled { background: #444; box-shadow: none; opacity: 0.8; cursor: not-allowed; }
 
         .footer-note {
             font-size: 12px;
@@ -204,27 +248,48 @@
         <div class="input-grid">
             <div class="group">
                 <label>範圍(小)</label>
-                <input type="number" id="min" value="1">
+                <div class="input-control">
+                    <button class="stepper-btn" onclick="step('min', -1)">-</button>
+                    <input type="number" id="min" value="1">
+                    <button class="stepper-btn" onclick="step('min', 1)">+</button>
+                </div>
             </div>
             <div class="group">
                 <label>範圍(大)</label>
-                <input type="number" id="max" value="50">
+                <div class="input-control">
+                    <button class="stepper-btn" onclick="step('max', -1)">-</button>
+                    <input type="number" id="max" value="50">
+                    <button class="stepper-btn" onclick="step('max', 1)">+</button>
+                </div>
             </div>
             <div class="group" style="grid-column: span 2; margin-top: 10px;">
                 <label>抽取數量</label>
-                <input type="number" id="qty" value="1">
+                <div class="input-control">
+                    <button class="stepper-btn" onclick="step('qty', -1)">-</button>
+                    <input type="number" id="qty" value="1">
+                    <button class="stepper-btn" onclick="step('qty', 1)">+</button>
+                </div>
             </div>
         </div>
         
         <div id="display"><span class="ready-text">READY</span></div>
         
-        <button id="btn" onclick="startDraw()">啟動抽獎</button>
+        <button id="btn" class="draw-btn" onclick="startDraw()">啟動抽獎</button>
         
         <div class="footer-note">製作:OOKouun</div>
     </div>
 </div>
 
 <script>
+    // 數字增減邏輯
+    function step(id, val) {
+        const input = document.getElementById(id);
+        const newValue = parseInt(input.value) + val;
+        if (id === 'qty' && newValue < 1) return;
+        if (id === 'min' && newValue < 0) return;
+        input.value = newValue;
+    }
+
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const canvas = document.getElementById('confetti-canvas');
     const ctx = canvas.getContext('2d');
@@ -295,7 +360,6 @@
 
         if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
 
-        // 優化：變更按鈕文字與狀態
         btn.disabled = true;
         btn.innerText = "輪盤轉動中...";
         
@@ -328,7 +392,6 @@
                 playTick(150, 'sawtooth', 0.5);
                 fireConfetti();
                 
-                // 優化：恢復按鈕文字
                 btn.disabled = false;
                 btn.innerText = "再次啟動抽獎";
             }
