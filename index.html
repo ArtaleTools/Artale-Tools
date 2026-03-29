@@ -35,20 +35,17 @@
             100% { transform: translate(-1px, -1px) rotate(0deg); }
         }
 
-        /* 網頁基礎設定 */
         body { 
             font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; 
-            margin: 0;
-            padding: 0;
             background: var(--bg);
-            background-image: radial-gradient(circle at 50% 0%, #3e1f25, #0f0f12);
-            background-attachment: fixed;
+            background-image: radial-gradient(circle at 50% -20%, #3e1f25, #0f0f12);
             color: white; 
-            min-height: 100vh;
-            display: flex;
+            display: flex; 
+            justify-content: center; 
             align-items: center;
-            justify-content: center;
-            overflow-x: auto; /* 允許過小螢幕自然產生捲軸 */
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
         }
 
         #confetti-canvas {
@@ -61,65 +58,24 @@
             z-index: 100;
         }
 
-        /* ★ 全新 Flexbox 彈性佈局核心 */
-        .layout-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            max-width: 1800px; /* 大螢幕防無限擴張 */
-            height: calc(100vh - 40px);
-            max-height: 850px;
-            min-height: 600px;
-            padding: 20px;
-            box-sizing: border-box;
+        .container {
+            perspective: 1000px;
+            width: 90%;
+            max-width: 400px;
+            z-index: 10;
+            animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
         }
 
-        /* ★ 側邊面板的隱藏與滑出動畫 */
-        .panel {
-            width: 0; /* 初始隱藏，不佔空間 */
-            opacity: 0;
-            margin: 0;
-            height: 100%;
-            overflow: hidden; /* 隱藏摺疊時的內容 */
-            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); /* 平滑展開動畫 */
-        }
-
-        /* 主視窗永遠保持可見 */
-        .panel.main-panel {
-            width: 100%;
-            max-width: 420px;
-            opacity: 1;
-            overflow: visible;
-        }
-
-        /* ★ 當觸發開獎，所有面板等比例展開分享螢幕空間 */
-        .layout-wrapper.active .panel {
-            width: 25%; /* 4個面板各佔 25% 空間 */
-            max-width: 420px;
-            min-width: 280px; /* 螢幕太小時的防擠壓底線 */
-            margin: 0 10px; /* 面板之間的間距 */
-            opacity: 1;
-        }
-
-        /* 卡片本體 */
         .card { 
             background: rgba(30, 30, 38, 0.95); 
+            padding: 40px 30px; 
             border-radius: 24px; 
             border: 2px solid var(--primary);
             box-shadow: 0 0 50px rgba(255, 71, 87, 0.3);
+            text-align: center;
             backdrop-filter: blur(10px);
-            
-            width: 100%;
-            min-width: 280px; /* 確保摺疊過程中文字不亂跑 */
-            height: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
+            position: relative;
         }
-
-        .main-panel .card { padding: 40px 30px; text-align: center; }
-        .info-panel .card, .stats-panel .card, .history-panel .card { padding: 30px 25px; text-align: left; }
 
         .lucky-text { 
             background: linear-gradient(110deg, #ff4757 25%, #ffffff 45%, #ff4757 50%, #ffffff 55%, #ff4757 75%);
@@ -132,194 +88,200 @@
             display: inline-block;
         }
 
-        .subtitle { font-size: 30px; margin: 5px 0 25px 0; letter-spacing: 3px; }
-        h2 { color: white; margin: 0; letter-spacing: 1px; font-size: 20px; opacity: 0.8; }
+        .subtitle { 
+            font-size: 32px; 
+            margin: 5px 0 25px 0; 
+            letter-spacing: 3px; 
+        }
 
-        /* 輸入與按鈕區塊 */
+        h2 { 
+            color: white; 
+            margin: 0; 
+            letter-spacing: 1px; 
+            font-size: 20px;
+            opacity: 0.8;
+        }
+
+        /* --- 增減控制組優化 --- */
         .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 15px;
             margin-bottom: 20px;
             background: rgba(0,0,0,0.3);
             padding: 15px;
             border-radius: 15px;
-            flex-shrink: 0;
         }
+
         .input-control {
-            display: flex; align-items: center; justify-content: space-between;
-            background: #121217; border-radius: 12px; border: 1px solid #444; padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #121217;
+            border-radius: 12px;
+            border: 1px solid #444;
+            padding: 2px;
+            transition: border-color 0.3s;
         }
-        .input-control:focus-within { border-color: var(--primary); }
+
+        .input-control:focus-within {
+            border-color: var(--primary);
+        }
+
         .stepper-btn {
-            background: transparent; border: none; color: var(--primary); font-size: 20px;
-            font-weight: bold; width: 35px; height: 35px; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; user-select: none; border-radius: 8px;
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 20px;
+            font-weight: bold;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border-radius: 8px;
             transition: background 0.2s;
         }
-        .stepper-btn:hover { background: rgba(255, 71, 87, 0.1); }
-        .stepper-btn:active { transform: scale(0.9); }
-        input { 
-            width: 40px; flex-grow: 1; padding: 8px 0; border: none; background: transparent; 
-            color: #ffffff; font-weight: bold; font-size: 18px; text-align: center; outline: none;
+
+        .stepper-btn:hover {
+            background: rgba(255, 71, 87, 0.1);
         }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .stepper-btn:active {
+            transform: scale(0.9);
+        }
+
+        input { 
+            width: 40px; 
+            flex-grow: 1;
+            padding: 8px 0; 
+            border: none;
+            background: transparent; 
+            color: #ffffff; 
+            font-weight: bold; 
+            font-size: 18px; 
+            text-align: center; 
+            outline: none;
+        }
+
+        /* 隱藏原生箭頭 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
         input[type=number] { -moz-appearance: textfield; }
+
         label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; text-align: left; }
 
-        /* 顯示區塊 */
+        /* --- 顯示與按鈕 --- */
         #display { 
-            color: #ffffff; margin: 20px 0; font-family: 'Courier New', monospace; 
-            font-weight: 900; line-height: 1.5; flex-grow: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; overflow-y: auto; min-height: 0;
+            font-size: 60px; 
+            color: #ffffff; 
+            margin: 25px 0; 
+            font-family: 'Courier New', monospace; 
+            font-weight: 900;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.3;
         }
-        .ready-text { font-size: 60px; animation: readyBeat 1.5s infinite ease-in-out; text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); margin: auto; }
-        .win-text { font-size: 32px; color: #ffffff; margin-bottom: 15px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.2); flex-shrink: 0; }
-        .win-numbers { word-break: break-all; padding: 0 10px; line-height: 1.6; }
+
+        .ready-text {
+            animation: readyBeat 1.5s infinite ease-in-out;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .win-text {
+            font-size: 36px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
 
         .draw-btn { 
-            width: 100%; padding: 18px; background: linear-gradient(45deg, #ff4757, #ff6b81);
-            border: none; color: white; font-size: 22px; font-weight: bold; cursor: pointer; 
-            border-radius: 15px; box-shadow: 0 6px 0 #a32d38; transition: all 0.2s;
-            margin-bottom: 20px; letter-spacing: 1px; flex-shrink: 0;
+            width: 100%; 
+            padding: 18px; 
+            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            border: none; 
+            color: white; 
+            font-size: 22px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border-radius: 15px; 
+            box-shadow: 0 6px 0 #a32d38;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
         }
-        .draw-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 8px 0 #a32d38; }
+
+        .draw-btn:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 #a32d38;
+        }
+
         .draw-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #a32d38; }
         .draw-btn:disabled { background: #444; box-shadow: none; opacity: 0.8; cursor: not-allowed; }
-        .footer-note { font-size: 12px; color: #666; opacity: 0.6; margin-top: auto; flex-shrink: 0; text-align: center; }
 
-        /* --- 副視窗通用樣式 --- */
-        .section-title {
-            color: #fff; font-size: 20px; font-weight: bold; text-align: center;
-            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(255, 71, 87, 0.3);
-            letter-spacing: 2px; flex-shrink: 0;
+        .footer-note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            opacity: 0.6;
         }
-        .scroll-list {
-            flex-grow: 1;
-            overflow-y: auto; 
-            padding-right: 10px;
-            padding-bottom: 10px;
-        }
-
-        /* 歷史紀錄細節 */
-        .history-item { font-size: 13px; padding: 15px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.15); }
-        .history-item:last-child { border-bottom: none; }
-        .history-info { color: #aaaaaa; margin-bottom: 8px; line-height: 1.4; }
-        .history-numbers { line-height: 1.8; word-break: break-all; color: #cccccc; }
-        .history-numbers span { color: var(--primary); font-weight: bold; font-size: 1.3em; letter-spacing: 1px; }
-
-        /* 號碼統計細節 */
-        .stat-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 10px; border-bottom: 1px dashed rgba(255, 255, 255, 0.15); font-size: 15px; color: #ccc;
-        }
-        .stat-item:last-child { border-bottom: none; }
-        .stat-num span { color: var(--primary); font-weight: bold; font-size: 1.4em; margin-left: 5px; }
-        .stat-count span { color: #fff; font-weight: bold; font-size: 1.3em; margin-right: 5px; }
-
-        /* 科普說明細節 */
-        .info-p { margin-bottom: 15px; color: #cccccc; font-size: 14px; }
-        .info-p strong { color: var(--primary); font-size: 1.05em; }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 71, 87, 0.4); border-radius: 6px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 71, 87, 0.7); }
     </style>
 </head>
 <body>
 
 <canvas id="confetti-canvas"></canvas>
 
-<!-- ★ 彈性佈局容器 -->
-<div class="layout-wrapper" id="layoutWrapper">
-    
-    <!-- 左 2：機率科普 -->
-    <div class="panel info-panel">
-        <div class="card">
-            <div class="section-title">💡 機率與統計科普</div>
-            <div class="scroll-list" style="padding: 0 10px; line-height: 1.8; text-align: justify;">
-                <p class="info-p" style="color: #fff;">看來某些數字真的是今天的<strong>超強幸運數字</strong>！別擔心，這絕對不是系統作弊，這是標準的「機率與統計學」現象：</p>
-                <p class="info-p"><strong>1. 絕對公平的洗牌演算法：</strong><br>
-                抽獎核心使用程式界公認最公平的「Fisher-Yates 洗牌演算法」。每次都會把數字像洗撲克牌一樣徹底打亂，每個數字被抽中的機率是 100% 相同的。</p>
-                <p class="info-p"><strong>2. 小樣本偏差 (Small Sample Size)：</strong><br>
-                在少量的抽取次數下，機率是無法「被平均」的。就像擲硬幣 10 次很可能出現 7 次正面，但擲 1 萬次結果就會無限接近 50:50。</p>
-                <p class="info-p"><strong>3. 隨機聚集錯覺 (Clustering Illusion)：</strong><br>
-                人類直覺認為「隨機」應該是平均分配，但真正的隨機其實是會「扎堆」的。必定有幾個數字突然飆高，也有一堆數字掛蛋，這才是真正的隨機分佈。</p>
-                
-                <div style="text-align: center; border-top: 1px dashed #444; padding-top: 18px; margin-top: 10px;">
-                    <span style="color: #fff; font-size: 1.1em;">🎲 你可以親自測試看看！</span><br>
-                    <span style="color: #aaa; font-size: 0.9em;">把抽取數量改成 50，瘋狂點擊抽個上百次。你會發現右邊排行榜的次數最終會全部拉平！</span>
+<div class="container">
+    <div class="card" id="mainCard">
+        <h2>Artale 繁中槍手群</h2>
+        <div class="subtitle lucky-text">幸運抽獎輪盤</div>
+        
+        <div class="input-grid">
+            <div class="group">
+                <label>範圍(小)</label>
+                <div class="input-control">
+                    <button class="stepper-btn" onclick="step('min', -1)">-</button>
+                    <input type="number" id="min" value="1">
+                    <button class="stepper-btn" onclick="step('min', 1)">+</button>
+                </div>
+            </div>
+            <div class="group">
+                <label>範圍(大)</label>
+                <div class="input-control">
+                    <button class="stepper-btn" onclick="step('max', -1)">-</button>
+                    <input type="number" id="max" value="50">
+                    <button class="stepper-btn" onclick="step('max', 1)">+</button>
+                </div>
+            </div>
+            <div class="group" style="grid-column: span 2; margin-top: 10px;">
+                <label>抽取數量</label>
+                <div class="input-control">
+                    <button class="stepper-btn" onclick="step('qty', -1)">-</button>
+                    <input type="number" id="qty" value="1">
+                    <button class="stepper-btn" onclick="step('qty', 1)">+</button>
                 </div>
             </div>
         </div>
+        
+        <div id="display"><span class="ready-text">READY</span></div>
+        
+        <button id="btn" class="draw-btn" onclick="startDraw()">啟動抽獎</button>
+        
+        <div class="footer-note">製作:OOKouun</div>
     </div>
-
-    <!-- 左 1：號碼統計 -->
-    <div class="panel stats-panel">
-        <div class="card">
-            <div class="section-title">📊 號碼統計</div>
-            <div class="scroll-list" id="statsList"></div>
-        </div>
-    </div>
-
-    <!-- 中間：主視窗 -->
-    <div class="panel main-panel">
-        <div class="card" id="mainCard">
-            <h2>Artale 繁中槍手群</h2>
-            <div class="subtitle lucky-text">幸運抽獎輪盤</div>
-            
-            <div class="input-grid">
-                <div class="group">
-                    <label>範圍(小)</label>
-                    <div class="input-control">
-                        <button class="stepper-btn" onclick="step('min', -1)">-</button>
-                        <input type="number" id="min" value="1">
-                        <button class="stepper-btn" onclick="step('min', 1)">+</button>
-                    </div>
-                </div>
-                <div class="group">
-                    <label>範圍(大)</label>
-                    <div class="input-control">
-                        <button class="stepper-btn" onclick="step('max', -1)">-</button>
-                        <input type="number" id="max" value="50">
-                        <button class="stepper-btn" onclick="step('max', 1)">+</button>
-                    </div>
-                </div>
-                <div class="group" style="grid-column: span 2; margin-top: 5px;">
-                    <label>抽取數量</label>
-                    <div class="input-control">
-                        <button class="stepper-btn" onclick="step('qty', -1)">-</button>
-                        <input type="number" id="qty" value="3">
-                        <button class="stepper-btn" onclick="step('qty', 1)">+</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="display"><div class="ready-text">READY</div></div>
-            
-            <button id="btn" class="draw-btn" onclick="startDraw()">啟動抽獎</button>
-            <div class="footer-note">製作:OOKouun</div>
-        </div>
-    </div>
-
-    <!-- 右側：歷史紀錄 -->
-    <div class="panel history-panel">
-        <div class="card">
-            <div class="section-title">📜 歷史紀錄</div>
-            <div class="scroll-list" id="historyList"></div>
-        </div>
-    </div>
-
 </div>
 
 <script>
-    // 網路時間同步
-    let timeOffset = 0; 
-    fetch('https://worldtimeapi.org/api/timezone/Asia/Taipei')
-        .then(res => res.json())
-        .then(data => { timeOffset = new Date(data.datetime).getTime() - Date.now(); })
-        .catch(e => { console.warn('時間同步失敗'); });
-
+    // 數字增減邏輯
     function step(id, val) {
         const input = document.getElementById(id);
         const newValue = parseInt(input.value) + val;
@@ -332,9 +294,11 @@
     const canvas = document.getElementById('confetti-canvas');
     const ctx = canvas.getContext('2d');
     let pieces = [];
-    let numberFrequency = {}; 
 
-    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
@@ -343,9 +307,13 @@
         const colors = ['#ff4757', '#ffffff', '#a32d38', '#ff6b81'];
         for (let i = 0; i < 150; i++) {
             pieces.push({
-                x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
-                rotation: Math.random() * 360, color: colors[Math.floor(Math.random() * colors.length)],
-                size: Math.random() * 10 + 5, speed: Math.random() * 8 + 5, osc: Math.random() * 2
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                rotation: Math.random() * 360,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: Math.random() * 10 + 5,
+                speed: Math.random() * 8 + 5,
+                osc: Math.random() * 2
             });
         }
         updateConfetti();
@@ -354,9 +322,15 @@
     function updateConfetti() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         pieces.forEach((p, i) => {
-            p.y += p.speed; p.x += Math.sin(p.y / 30) * p.osc; p.rotation += 5;
-            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation * Math.PI / 180);
-            ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size); ctx.restore();
+            p.y += p.speed;
+            p.x += Math.sin(p.y / 30) * p.osc;
+            p.rotation += 5;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            ctx.restore();
         });
         pieces = pieces.filter(p => p.y < canvas.height);
         if (pieces.length > 0) requestAnimationFrame(updateConfetti);
@@ -364,38 +338,16 @@
 
     function playTick(freq, type, duration) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
         gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
-    }
-
-    function padZero(num) { return String(num).padStart(2, '0'); }
-
-    function updateStatsUI() {
-        const statsList = document.getElementById('statsList');
-        const sortedStats = Object.entries(numberFrequency).sort((a, b) => {
-            if (b[1] !== a[1]) return b[1] - a[1];
-            return parseInt(a[0]) - parseInt(b[0]);
-        });
-
-        let html = '';
-        sortedStats.forEach(([num, count], index) => {
-            let rankIcon = '<span style="display:inline-block; width: 26px;"></span>';
-            if (index === 0) rankIcon = '🥇 ';
-            else if (index === 1) rankIcon = '🥈 ';
-            else if (index === 2) rankIcon = '🥉 ';
-
-            html += `
-                <div class="stat-item">
-                    <div class="stat-num">${rankIcon}號碼<span>${num}</span></div>
-                    <div class="stat-count"><span>${count}</span>次</div>
-                </div>
-            `;
-        });
-        statsList.innerHTML = html;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
     }
 
     function startDraw() {
@@ -410,7 +362,7 @@
 
         btn.disabled = true;
         btn.innerText = "輪盤轉動中...";
-
+        
         let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
         for (let i = pool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -418,11 +370,12 @@
         }
         const winners = pool.slice(0, n).sort((a,b)=>a-b);
 
-        let count = 0; let speed = 50;
+        let count = 0;
+        let speed = 50;
         
         function roll() {
             count++;
-            disp.innerHTML = `<div style="margin: auto; font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${Math.floor(Math.random() * (vMax - vMin + 1)) + vMin}</div>`;
+            disp.innerHTML = `<span style="font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${Math.floor(Math.random() * (vMax - vMin + 1)) + vMin}</span>`;
             playTick(400 + count * 15, 'square', 0.05); 
             
             if (count > 25) card.style.animation = "shake 0.1s infinite";
@@ -432,43 +385,12 @@
                 if (count > 35) speed += 20;
             } else {
                 card.style.animation = "none";
-                
-                let dynamicFontSize = "45px";
-                if (n >= 4) dynamicFontSize = "36px";
-                if (n >= 8) dynamicFontSize = "28px";
-                if (n >= 15) dynamicFontSize = "22px";
-                if (n >= 30) dynamicFontSize = "16px";
-                if (n >= 45) dynamicFontSize = "14px";
-                
                 disp.innerHTML = `
                     <div class="win-text">恭喜中獎！</div>
-                    <div class="win-numbers lucky-text" style="font-size: ${dynamicFontSize};">${winners.join(' ‧ ')}</div>
+                    <div class="win-numbers lucky-text">${winners.join('、')}</div>
                 `;
-                
                 playTick(150, 'sawtooth', 0.5);
                 fireConfetti();
-                
-                const now = new Date(Date.now() + timeOffset);
-                const dateStr = `${now.getFullYear()}/${padZero(now.getMonth() + 1)}/${padZero(now.getDate())}`;
-                const timeStr = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
-                
-                winners.forEach(w => {
-                    numberFrequency[w] = (numberFrequency[w] || 0) + 1;
-                });
-                
-                // ★ 觸發 CSS 動畫，讓四個面板流暢展開並均分空間
-                document.getElementById('layoutWrapper').classList.add('active');
-                
-                updateStatsUI();
-                
-                const logItem = document.createElement('div');
-                logItem.className = 'history-item';
-                logItem.innerHTML = `
-                    <div class="history-info">${dateStr} ‧ ${timeStr} ‧ Range ${vMin}~${vMax} ‧ 抽取數量${n}組</div>
-                    <div class="history-numbers">中獎號碼：<span>${winners.join(' ‧ ')}</span></div>
-                `;
-                
-                document.getElementById('historyList').prepend(logItem);
                 
                 btn.disabled = false;
                 btn.innerText = "再次啟動抽獎";
