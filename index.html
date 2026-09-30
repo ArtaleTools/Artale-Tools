@@ -828,6 +828,8 @@
                 sitekey: CONFIG.TURNSTILE_SITE_KEY,
                 callback: resolve,
                 'error-callback': () => reject(new Error('turnstile')),
+                'timeout-callback': () => reject(new Error('turnstile')),
+                'expired-callback': () => reject(new Error('turnstile')),
             });
         });
     }
