@@ -1,5 +1,6 @@
 import { type Env, HttpError, json, listVar } from "./http";
 import type { DrawCommitted } from "./room";
+import { reelContent, reelDigits, reelRows, reelsAvailable, stopSteps } from "./reels";
 import { DEFAULT_SETTINGS } from "./validation";
 
 export const COMMAND_NAME = "抽獎";
@@ -78,6 +79,10 @@ function rollingEmbed(env: Env, min: number, max: number, count: number) {
   };
 }
 
+function reelSpinEmbed(min: number, max: number, count: number) {
+  return { title: "🎰 幸運抽獎輪盤轉動中…", color: BRAND_RED, footer: { text: `範圍 ${min}–${max}・抽取 ${count} 個` } };
+}
+
 function resultImageUrl(requestUrl: string, roomId: string, sequence: number): string {
   return new URL(`/img/result/${roomId}/${sequence}.png`, requestUrl).toString();
 }
@@ -92,7 +97,11 @@ function watchUrl(env: Env, roomId: string, sequence?: number): string {
 function resultMessage(env: Env, committed: DrawCommitted, userId: string | undefined, origin: string) {
   const { draw } = committed;
   const sorted = [...draw.results].sort((a, b) => a - b);
+  const reels = reelsAvailable();
+  const digits = reelDigits(draw.max);
+  const shown = reels ? reelRows(sorted, digits) : [];
   return {
+    ...(reels ? { content: reelContent(shown, digits, digits) } : {}),
     embeds: [
       {
         title: "🎉 恭喜中獎！",
@@ -104,9 +113,14 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
           { name: "第幾抽", value: `#${draw.sequence}`, inline: true },
           ...(userId ? [{ name: "抽獎者", value: `<@${userId}>`, inline: true }] : []),
         ],
-        image: { url: resultImageUrl(origin, committed.roomId, draw.sequence) },
+        ...(reels ? {} : { image: { url: resultImageUrl(origin, committed.roomId, draw.sequence) } }),
         thumbnail: { url: assetUrl(env, "discord-win.gif") },
-        footer: { text: "號碼由小到大顯示・由伺服器產生並保存" },
+        footer: {
+          text:
+            shown.length < sorted.length
+              ? `轉盤顯示前 ${shown.length} 個・號碼由小到大・由伺服器產生並保存`
+              : "號碼由小到大顯示・由伺服器產生並保存",
+        },
         timestamp: draw.createdAt,
       },
     ],
@@ -126,8 +140,43 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // plus a buffer so slower clients still see the whole roll before the result appears.
 const ROLL_MS = 3000 + 4240 + 800;
 
+// Slot reels: all spin, then columns stop left to right like a slot machine.
+const REEL_SPIN_MS = 2200;
+const REEL_STOP_GAP_MS = 750;
+
+/** Stops the reels column by column, the last edit also reveals the result embed. */
+async function animateReels(env: Env, interaction: Interaction, committed: DrawCommitted, origin: string): Promise<void> {
+  const base = env.DISCORD_API_BASE || "https://discord.com/api/v10";
+  const url = `${base}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`;
+  const userId = interaction.member?.user?.id ?? interaction.user?.id;
+  const patch = (body: unknown) =>
+    fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const sorted = [...committed.draw.results].sort((a, b) => a - b);
+  const digits = reelDigits(committed.draw.max);
+  const rows = reelRows(sorted, digits);
+  const steps = stopSteps(digits);
+  await sleep(REEL_SPIN_MS);
+  for (const [i, stopped] of steps.entries()) {
+    const last = i === steps.length - 1;
+    const body = last ? resultMessage(env, committed, userId, origin) : { content: reelContent(rows, digits, stopped) };
+    try {
+      const res = await patch(body);
+      if (!res.ok) throw new Error(`edit ${res.status}`);
+    } catch (e) {
+      // The draw is already committed; a failed edit must never trigger a redraw.
+      console.error("discord edit failed", e instanceof Error ? e.message : "unknown");
+      if (last) {
+        await sleep(1000);
+        await patch(body).catch(() => undefined);
+      }
+    }
+    if (!last) await sleep(REEL_STOP_GAP_MS);
+  }
+}
+
 /** Shows the page's rolling GIF, then edits the original response once to reveal the committed result. */
 async function animate(env: Env, interaction: Interaction, committed: DrawCommitted, origin: string): Promise<void> {
+  if (reelsAvailable()) return animateReels(env, interaction, committed, origin);
   const base = env.DISCORD_API_BASE || "https://discord.com/api/v10";
   const url = `${base}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`;
   const userId = interaction.member?.user?.id ?? interaction.user?.id;
@@ -197,10 +246,14 @@ export async function handleDiscordInteraction(request: Request, env: Env, ctx: 
 
   ctx.waitUntil(animate(env, interaction, payload, origin));
   const { min, max, count } = payload.draw;
+  const reels = reelsAvailable();
+  const digits = reelDigits(max);
+  const rows = reelRows([...payload.draw.results].sort((a, b) => a - b), digits);
   return json({
     type: ResponseType.CHANNEL_MESSAGE,
     data: {
-      embeds: [rollingEmbed(env, min, max, count)],
+      ...(reels ? { content: reelContent(rows, digits, 0) } : {}),
+      embeds: [reels ? reelSpinEmbed(min, max, count) : rollingEmbed(env, min, max, count)],
       components: [{ type: 1, components: [{ type: 2, style: 5, label: "網頁同步觀看", url: watchUrl(env, roomId) }] }],
       allowed_mentions: { parse: [] },
     },
