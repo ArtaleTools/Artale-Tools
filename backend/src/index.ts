@@ -1,4 +1,6 @@
 import { discordRoomId, handleDiscordInteraction, isAllowedDiscordChannel } from "./discord";
+import { renderResultPng } from "./result-image";
+import type { DrawOut } from "./room";
 import { type Env, HttpError, SCHEMA_VERSION, json, listVar, randomToken, readJsonBody, sha256Hex } from "./http";
 import { isDiscordRoomId, isValidRoomId } from "./validation";
 
@@ -126,6 +128,20 @@ async function routeApi(request: Request, env: Env, url: URL, ip: string): Promi
   throw new HttpError(405, "METHOD_NOT_ALLOWED", "不允許的方法。");
 }
 
+/** Result card PNG for one committed draw (used as the Discord embed image). */
+async function resultImage(env: Env, roomId: string, sequence: number): Promise<Response> {
+  if (!isValidRoomId(roomId)) throw new HttpError(404, "NOT_FOUND", "找不到圖片。");
+  const { stub, headers } = roomStub(env, roomId);
+  const res = await stub.fetch("https://room/snapshot", { headers });
+  if (!res.ok) throw new HttpError(404, "NOT_FOUND", "找不到圖片。");
+  const snap = (await res.json()) as { history: DrawOut[] };
+  const draw = snap.history.find((d) => d.sequence === sequence);
+  if (!draw) throw new HttpError(404, "NOT_FOUND", "找不到圖片。");
+  return new Response(renderResultPng(draw.results), {
+    headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000, immutable" },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -138,6 +154,17 @@ export default {
       } catch (e) {
         if (e instanceof HttpError) return e.toResponse();
         console.error("discord error", e instanceof Error ? e.message : "unknown");
+        return new HttpError(500, "INTERNAL", "伺服器錯誤。").toResponse();
+      }
+    }
+
+    const img = /^\/img\/result\/([A-Za-z0-9_-]+)\/(\d{1,9})\.png$/.exec(url.pathname);
+    if (img && request.method === "GET") {
+      try {
+        return await resultImage(env, img[1], Number(img[2]));
+      } catch (e) {
+        if (e instanceof HttpError) return e.toResponse();
+        console.error("image error", e instanceof Error ? e.message : "unknown");
         return new HttpError(500, "INTERNAL", "伺服器錯誤。").toResponse();
       }
     }

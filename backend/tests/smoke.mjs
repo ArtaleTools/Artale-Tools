@@ -264,9 +264,14 @@ try {
   });
 
   await step("Discord：先顯示轉動 GIF，再編輯成同一結果", async () => {
-    for (let i = 0; i < 80 && !edits.some((e) => e.body.embeds?.[0]?.title?.includes("恭喜")); i++) await sleep(100);
+    for (let i = 0; i < 120 && !edits.some((e) => e.body.embeds?.[0]?.title?.includes("恭喜")); i++) await sleep(100);
     const final = edits.find((e) => e.body.embeds?.[0]?.title?.includes("恭喜"));
-    assert.ok(final.body.embeds[0].image.url.includes("discord-win.gif"));
+    assert.ok(final.body.embeds[0].thumbnail.url.includes("discord-win.gif"));
+    const imgUrl = final.body.embeds[0].image.url;
+    assert.ok(imgUrl.includes(`/img/result/${dcRoom}/1.png`), imgUrl);
+    const img = await fetch(imgUrl.replace(/^https?:\/\/[^/]+/, BASE));
+    assert.equal(img.status, 200);
+    assert.equal(img.headers.get("Content-Type"), "image/png");
     assert.ok(final.url.includes("/webhooks/123456789012345678/tok-900000000000000002/messages/@original"));
     const shown = [...dcDraw.results].sort((a, b) => a - b).join("、");
     assert.ok(final.body.embeds[0].description.includes(shown));

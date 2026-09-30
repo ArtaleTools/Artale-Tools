@@ -66,7 +66,7 @@ function ephemeral(content: string): Response {
 
 /** GIFs recorded from the page's own animation (assets/ on GitHub Pages). */
 function assetUrl(env: Env, name: string): string {
-  return new URL(`assets/${name}?v=3`, env.PAGES_URL).toString();
+  return new URL(`assets/${name}?v=4`, env.PAGES_URL).toString();
 }
 
 function rollingEmbed(env: Env, min: number, max: number, count: number) {
@@ -78,6 +78,10 @@ function rollingEmbed(env: Env, min: number, max: number, count: number) {
   };
 }
 
+function resultImageUrl(requestUrl: string, roomId: string, sequence: number): string {
+  return new URL(`/img/result/${roomId}/${sequence}.png`, requestUrl).toString();
+}
+
 function watchUrl(env: Env, roomId: string, sequence?: number): string {
   const url = new URL(env.PAGES_URL);
   url.searchParams.set("room", roomId);
@@ -85,7 +89,7 @@ function watchUrl(env: Env, roomId: string, sequence?: number): string {
   return url.toString();
 }
 
-function resultMessage(env: Env, committed: DrawCommitted, userId: string | undefined) {
+function resultMessage(env: Env, committed: DrawCommitted, userId: string | undefined, origin: string) {
   const { draw } = committed;
   const sorted = [...draw.results].sort((a, b) => a - b);
   return {
@@ -93,14 +97,15 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
       {
         title: "🎉 恭喜中獎！",
         color: BRAND_RED,
-        description: `# ${sorted.join("、")}`,
+        description: `中獎號碼：**${sorted.join("、")}**`,
         fields: [
           { name: "範圍", value: `${draw.min}–${draw.max}`, inline: true },
           { name: "數量", value: String(draw.count), inline: true },
           { name: "第幾抽", value: `#${draw.sequence}`, inline: true },
           ...(userId ? [{ name: "抽獎者", value: `<@${userId}>`, inline: true }] : []),
         ],
-        image: { url: assetUrl(env, "discord-win.gif") },
+        image: { url: resultImageUrl(origin, committed.roomId, draw.sequence) },
+        thumbnail: { url: assetUrl(env, "discord-win.gif") },
         footer: { text: "號碼由小到大顯示・由伺服器產生並保存" },
         timestamp: draw.createdAt,
       },
@@ -117,15 +122,16 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Matches the page's roll() duration (~4.5s) before revealing the result.
-const ROLL_MS = 4500;
+// discord-roll.gif = 1.5s READY hold (absorbs Discord's GIF load delay) + the page's exact 4.24s roll,
+// plus a small buffer so slower clients still see the whole roll before the result appears.
+const ROLL_MS = 1500 + 4240 + 700;
 
 /** Shows the page's rolling GIF, then edits the original response once to reveal the committed result. */
-async function animate(env: Env, interaction: Interaction, committed: DrawCommitted): Promise<void> {
+async function animate(env: Env, interaction: Interaction, committed: DrawCommitted, origin: string): Promise<void> {
   const base = env.DISCORD_API_BASE || "https://discord.com/api/v10";
   const url = `${base}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`;
   const userId = interaction.member?.user?.id ?? interaction.user?.id;
-  const body = JSON.stringify(resultMessage(env, committed, userId));
+  const body = JSON.stringify(resultMessage(env, committed, userId, origin));
   const edit = () => fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body });
   await sleep(ROLL_MS);
   try {
@@ -186,9 +192,10 @@ export async function handleDiscordInteraction(request: Request, env: Env, ctx: 
   }
 
   // A replayed interaction (Discord retry) already has its message; just answer with the result.
-  if (payload.replayed) return json({ type: ResponseType.CHANNEL_MESSAGE, data: resultMessage(env, payload, undefined) });
+  const origin = new URL(request.url).origin;
+  if (payload.replayed) return json({ type: ResponseType.CHANNEL_MESSAGE, data: resultMessage(env, payload, undefined, origin) });
 
-  ctx.waitUntil(animate(env, interaction, payload));
+  ctx.waitUntil(animate(env, interaction, payload, origin));
   const { min, max, count } = payload.draw;
   return json({
     type: ResponseType.CHANNEL_MESSAGE,
