@@ -4,6 +4,9 @@
 import { spawn } from "node:child_process";
 import http from "node:http";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const PORT = 8799;
 const MOCK_PORT = 8798;
@@ -36,7 +39,9 @@ const vars = {
   DISCORD_API_BASE: `http://127.0.0.1:${MOCK_PORT}`,
   DRAW_COOLDOWN_SECONDS: "1",
 };
-const args = ["wrangler", "dev", "--port", String(PORT), "--ip", "127.0.0.1", "--show-interactive-dev-session=false"];
+// Fresh local state every run so earlier runs cannot affect results.
+const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "artale-smoke-"));
+const args = ["wrangler", "dev", "--persist-to", `"${stateDir}"`, "--port", String(PORT), "--ip", "127.0.0.1", "--show-interactive-dev-session=false"];
 for (const [k, v] of Object.entries(vars)) args.push("--var", `${k}:${v}`);
 const dev = spawn("npx", args, { shell: true, stdio: ["ignore", "pipe", "pipe"] });
 let devLog = "";
@@ -251,17 +256,17 @@ try {
     const body = await res.json();
     assert.equal(body.type, 4);
     assert.match(body.data.embeds[0].title, /轉動中/);
+    assert.ok(body.data.embeds[0].image.url.includes("discord-roll.gif"));
     dcDraw = (await watcher.next("draw_committed")).draw;
     assert.equal(dcDraw.source, "discord");
     assert.equal(dcDraw.max, 30);
     assert.equal(dcDraw.results.length, 2);
   });
 
-  await step("Discord：訊息被編輯成跳號動畫並停在同一結果", async () => {
+  await step("Discord：先顯示轉動 GIF，再編輯成同一結果", async () => {
     for (let i = 0; i < 80 && !edits.some((e) => e.body.embeds?.[0]?.title?.includes("恭喜")); i++) await sleep(100);
-    const rolls = edits.filter((e) => e.body.embeds?.[0]?.title?.includes("轉動中"));
     const final = edits.find((e) => e.body.embeds?.[0]?.title?.includes("恭喜"));
-    assert.ok(rolls.length >= 3, `rolling edits: ${rolls.length}`);
+    assert.ok(final.body.embeds[0].image.url.includes("discord-win.gif"));
     assert.ok(final.url.includes("/webhooks/123456789012345678/tok-900000000000000002/messages/@original"));
     const shown = [...dcDraw.results].sort((a, b) => a - b).join("、");
     assert.ok(final.body.embeds[0].description.includes(shown));
@@ -289,5 +294,8 @@ try {
   mock.close();
   if (process.platform === "win32") spawn("taskkill", ["/pid", String(dev.pid), "/T", "/F"], { stdio: "ignore" });
   else dev.kill();
-  setTimeout(() => process.exit(), 1500);
+  setTimeout(() => {
+    fs.rmSync(stateDir, { recursive: true, force: true });
+    process.exit();
+  }, 1500);
 }

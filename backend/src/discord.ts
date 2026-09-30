@@ -64,18 +64,16 @@ function ephemeral(content: string): Response {
   return json({ type: ResponseType.CHANNEL_MESSAGE, data: { content, flags: EPHEMERAL, allowed_mentions: { parse: [] } } });
 }
 
-function randomBetween(min: number, max: number): number {
-  const buf = new Uint32Array(1);
-  crypto.getRandomValues(buf);
-  return min + (buf[0] % (max - min + 1)); // animation only; bias is irrelevant here
+/** GIFs recorded from the page's own animation (assets/ on GitHub Pages). */
+function assetUrl(env: Env, name: string): string {
+  return new URL(`assets/${name}?v=1`, env.PAGES_URL).toString();
 }
 
-function rollingEmbed(min: number, max: number, count: number, frame: number) {
-  const bar = "▰".repeat(frame + 1) + "▱".repeat(Math.max(0, 5 - frame));
+function rollingEmbed(env: Env, min: number, max: number, count: number) {
   return {
     title: "🎰 幸運抽獎輪盤轉動中…",
     color: BRAND_RED,
-    description: `# ${randomBetween(min, max)}\n${bar}`,
+    image: { url: assetUrl(env, "discord-roll.gif") },
     footer: { text: `範圍 ${min}–${max}・抽取 ${count} 個` },
   };
 }
@@ -102,6 +100,7 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
           { name: "第幾抽", value: `#${draw.sequence}`, inline: true },
           ...(userId ? [{ name: "抽獎者", value: `<@${userId}>`, inline: true }] : []),
         ],
+        image: { url: assetUrl(env, "discord-win.gif") },
         footer: { text: "號碼由小到大顯示・由伺服器產生並保存" },
         timestamp: draw.createdAt,
       },
@@ -118,26 +117,25 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Edits the original response a few times to mimic the page's number roll, then shows the result. */
+// Matches the page's roll() duration (~4.5s) before revealing the result.
+const ROLL_MS = 4500;
+
+/** Shows the page's rolling GIF, then edits the original response once to reveal the committed result. */
 async function animate(env: Env, interaction: Interaction, committed: DrawCommitted): Promise<void> {
   const base = env.DISCORD_API_BASE || "https://discord.com/api/v10";
   const url = `${base}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`;
-  const edit = (body: unknown) =>
-    fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const { min, max, count } = committed.draw;
   const userId = interaction.member?.user?.id ?? interaction.user?.id;
+  const body = JSON.stringify(resultMessage(env, committed, userId));
+  const edit = () => fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body });
+  await sleep(ROLL_MS);
   try {
-    for (const [frame, delay] of [600, 650, 700, 800, 950].entries()) {
-      await sleep(delay);
-      await edit({ embeds: [rollingEmbed(min, max, count, frame + 1)] });
-    }
-    await sleep(1000);
-    const res = await edit(resultMessage(env, committed, userId));
-    if (!res.ok) throw new Error(`final edit ${res.status}`);
+    const res = await edit();
+    if (!res.ok) throw new Error(`edit ${res.status}`);
   } catch (e) {
     // The draw is already committed; a failed edit must never trigger a redraw.
     console.error("discord edit failed", e instanceof Error ? e.message : "unknown");
-    await edit(resultMessage(env, committed, userId)).catch(() => undefined);
+    await sleep(1000);
+    await edit().catch(() => undefined);
   }
 }
 
@@ -195,7 +193,7 @@ export async function handleDiscordInteraction(request: Request, env: Env, ctx: 
   return json({
     type: ResponseType.CHANNEL_MESSAGE,
     data: {
-      embeds: [rollingEmbed(min, max, count, 0)],
+      embeds: [rollingEmbed(env, min, max, count)],
       components: [{ type: 1, components: [{ type: 2, style: 5, label: "網頁同步觀看", url: watchUrl(env, roomId) }] }],
       allowed_mentions: { parse: [] },
     },
