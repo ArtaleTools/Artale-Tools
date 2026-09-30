@@ -137,7 +137,7 @@ async function resultImage(env: Env, roomId: string, sequence: number): Promise<
   const snap = (await res.json()) as { history: DrawOut[] };
   const draw = snap.history.find((d) => d.sequence === sequence);
   if (!draw) throw new HttpError(404, "NOT_FOUND", "找不到圖片。");
-  return new Response(renderResultPng(draw.results), {
+  return new Response(await renderResultPng(draw.results), {
     headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000, immutable" },
   });
 }

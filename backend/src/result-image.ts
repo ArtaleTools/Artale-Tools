@@ -3,8 +3,8 @@ import { CHARS, IMAGES, NUM_BOX, PALETTE } from "./result-assets";
 /**
  * Renders the result card ("恭喜中獎！" + winning numbers in the page's lucky-text style) as an
  * 8-bit palette PNG. Glyphs and the card were captured from the live page; here we only paste
- * pre-rendered pixels and write an uncompressed (stored-deflate) PNG, which keeps CPU time low
- * enough for the Workers Free plan.
+ * pre-rendered pixels and compress with the runtime's native CompressionStream, which keeps CPU
+ * time low enough for the Workers Free plan and the file small enough for Discord to load quickly.
  */
 
 interface Bitmap {
@@ -119,35 +119,17 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
   return out;
 }
 
-function encodePng(w: number, h: number, px: Uint8Array, pal: Uint8Array): Uint8Array {
-  // Raw scanlines with filter byte 0.
-  const rawLen = h * (w + 1);
-  const raw = new Uint8Array(rawLen);
-  for (let y = 0; y < h; y++) raw.set(px.subarray(y * w, (y + 1) * w), y * (w + 1) + 1);
+async function zlibDeflate(data: Uint8Array): Promise<Uint8Array> {
+  // "deflate" = zlib-wrapped deflate, exactly what PNG IDAT expects. Runs natively in the runtime.
+  const stream = new Blob([data]).stream().pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
 
-  // zlib stream with stored (uncompressed) deflate blocks.
-  const blocks = Math.ceil(rawLen / 65535);
-  const z = new Uint8Array(2 + rawLen + blocks * 5 + 4);
-  z[0] = 0x78;
-  z[1] = 0x01;
-  let o = 2;
-  let a = 1;
-  let b = 0;
-  for (let i = 0; i < rawLen; i += 65535) {
-    const len = Math.min(65535, rawLen - i);
-    z[o++] = i + len >= rawLen ? 1 : 0;
-    z[o++] = len & 0xff;
-    z[o++] = len >>> 8;
-    z[o++] = ~len & 0xff;
-    z[o++] = (~len >>> 8) & 0xff;
-    z.set(raw.subarray(i, i + len), o);
-    o += len;
-  }
-  for (let i = 0; i < rawLen; i++) {
-    a = (a + raw[i]) % 65521;
-    b = (b + a) % 65521;
-  }
-  new DataView(z.buffer).setUint32(o, ((b << 16) | a) >>> 0);
+async function encodePng(w: number, h: number, px: Uint8Array, pal: Uint8Array): Promise<Uint8Array> {
+  // Raw scanlines with filter byte 0.
+  const raw = new Uint8Array(h * (w + 1));
+  for (let y = 0; y < h; y++) raw.set(px.subarray(y * w, (y + 1) * w), y * (w + 1) + 1);
+  const z = await zlibDeflate(raw);
 
   const ihdr = new Uint8Array(13);
   const dv = new DataView(ihdr.buffer);
@@ -166,7 +148,7 @@ function encodePng(w: number, h: number, px: Uint8Array, pal: Uint8Array): Uint8
   return out;
 }
 
-export function renderResultPng(results: number[]): Uint8Array {
+export async function renderResultPng(results: number[]): Promise<Uint8Array> {
   const imgs = assets();
   const tpl = imgs.get("template")!;
   const px = tpl.px.slice();

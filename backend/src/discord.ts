@@ -66,7 +66,7 @@ function ephemeral(content: string): Response {
 
 /** GIFs recorded from the page's own animation (assets/ on GitHub Pages). */
 function assetUrl(env: Env, name: string): string {
-  return new URL(`assets/${name}?v=4`, env.PAGES_URL).toString();
+  return new URL(`assets/${name}?v=5`, env.PAGES_URL).toString();
 }
 
 function rollingEmbed(env: Env, min: number, max: number, count: number) {
@@ -122,9 +122,9 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// discord-roll.gif = 1.5s READY hold (absorbs Discord's GIF load delay) + the page's exact 4.24s roll,
-// plus a small buffer so slower clients still see the whole roll before the result appears.
-const ROLL_MS = 1500 + 4240 + 700;
+// discord-roll.gif = 3s READY hold (absorbs Discord's GIF load delay) + the page's exact 4.24s roll,
+// plus a buffer so slower clients still see the whole roll before the result appears.
+const ROLL_MS = 3000 + 4240 + 800;
 
 /** Shows the page's rolling GIF, then edits the original response once to reveal the committed result. */
 async function animate(env: Env, interaction: Interaction, committed: DrawCommitted, origin: string): Promise<void> {
