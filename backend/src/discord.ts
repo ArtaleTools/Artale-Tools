@@ -79,8 +79,13 @@ function rollingEmbed(env: Env, min: number, max: number, count: number) {
   };
 }
 
-function reelSpinEmbed(min: number, max: number, count: number) {
-  return { title: "🎰 幸運抽獎輪盤轉動中…", color: BRAND_RED, footer: { text: `範圍 ${min}–${max}・抽取 ${count} 個` } };
+function reelSpinEmbed(min: number, max: number, count: number, reels: string) {
+  return {
+    title: "🎰 幸運抽獎輪盤轉動中…",
+    color: BRAND_RED,
+    description: reels,
+    footer: { text: `範圍 ${min}–${max}・抽取 ${count} 個` },
+  };
 }
 
 function resultImageUrl(requestUrl: string, roomId: string, sequence: number): string {
@@ -101,12 +106,13 @@ function resultMessage(env: Env, committed: DrawCommitted, userId: string | unde
   const digits = reelDigits(draw.max);
   const shown = reels ? reelRows(sorted, digits) : [];
   return {
-    ...(reels ? { content: reelContent(shown, digits, digits) } : {}),
+    content: "",
     embeds: [
       {
         title: "🎉 恭喜中獎！",
         color: BRAND_RED,
-        description: `中獎號碼：**${sorted.join("、")}**`,
+        description: `${reels ? `${reelContent(shown, digits, digits)}
+` : ""}中獎號碼：**${sorted.join("、")}**`,
         fields: [
           { name: "範圍", value: `${draw.min}–${draw.max}`, inline: true },
           { name: "數量", value: String(draw.count), inline: true },
@@ -158,7 +164,10 @@ async function animateReels(env: Env, interaction: Interaction, committed: DrawC
   await sleep(REEL_SPIN_MS);
   for (const [i, stopped] of steps.entries()) {
     const last = i === steps.length - 1;
-    const body = last ? resultMessage(env, committed, userId, origin) : { content: reelContent(rows, digits, stopped) };
+    const { min, max, count } = committed.draw;
+    const body = last
+      ? resultMessage(env, committed, userId, origin)
+      : { embeds: [reelSpinEmbed(min, max, count, reelContent(rows, digits, stopped))] };
     try {
       const res = await patch(body);
       if (!res.ok) throw new Error(`edit ${res.status}`);
@@ -252,8 +261,7 @@ export async function handleDiscordInteraction(request: Request, env: Env, ctx: 
   return json({
     type: ResponseType.CHANNEL_MESSAGE,
     data: {
-      ...(reels ? { content: reelContent(rows, digits, 0) } : {}),
-      embeds: [reels ? reelSpinEmbed(min, max, count) : rollingEmbed(env, min, max, count)],
+      embeds: [reels ? reelSpinEmbed(min, max, count, reelContent(rows, digits, 0)) : rollingEmbed(env, min, max, count)],
       components: [{ type: 1, components: [{ type: 2, style: 5, label: "網頁同步觀看", url: watchUrl(env, roomId) }] }],
       allowed_mentions: { parse: [] },
     },

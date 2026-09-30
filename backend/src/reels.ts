@@ -2,7 +2,7 @@ import EMOJIS from "./emojis.json";
 
 /**
  * Slot-reel rendering with application emojis (lt_0 … lt_9 static digits, lt_spin1 … lt_spin3 spinning).
- * A message whose content is only emojis is shown jumbo-sized by Discord, so the reels carry no text.
+ * Reels live in the embed description; each row is a "# " heading so the emojis render at heading size.
  */
 
 type EmojiMap = Record<string, { id: string; animated: boolean }>;
@@ -37,6 +37,7 @@ export function reelContent(rows: number[], digits: number, stopped: number): st
       const s = String(n).padStart(digits, "0");
       return [...s].map((ch, c) => (c < stopped ? tag(`lt_${ch}`) : tag(SPINS[(r + c) % SPINS.length]))).join("");
     })
+    .map((row) => `# ${row}`)
     .join("\n");
 }
 

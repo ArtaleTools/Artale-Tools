@@ -256,7 +256,8 @@ try {
     const body = await res.json();
     assert.equal(body.type, 4);
     assert.match(body.data.embeds[0].title, /轉動中/);
-    assert.ok(body.data.embeds[0].image.url.includes("discord-roll.gif"));
+    const first = body.data.embeds[0];
+    assert.ok(first.image ? first.image.url.includes("discord-roll.gif") : /^# (<a:lt_spin\d:\d+>)+$/m.test(first.description), `reels or GIF: ${JSON.stringify(first)}`);
     dcDraw = (await watcher.next("draw_committed")).draw;
     assert.equal(dcDraw.source, "discord");
     assert.equal(dcDraw.max, 30);
@@ -267,14 +268,16 @@ try {
     for (let i = 0; i < 120 && !edits.some((e) => e.body.embeds?.[0]?.title?.includes("恭喜")); i++) await sleep(100);
     const final = edits.find((e) => e.body.embeds?.[0]?.title?.includes("恭喜"));
     assert.ok(final.body.embeds[0].thumbnail.url.includes("discord-win.gif"));
-    const imgUrl = final.body.embeds[0].image.url;
-    assert.ok(imgUrl.includes(`/img/result/${dcRoom}/1.png`), imgUrl);
-    const img = await fetch(imgUrl.replace(/^https?:\/\/[^/]+/, BASE));
+    const img = await fetch(`${BASE}/img/result/${dcRoom}/1.png`);
     assert.equal(img.status, 200);
     assert.equal(img.headers.get("Content-Type"), "image/png");
     assert.ok(final.url.includes("/webhooks/123456789012345678/tok-900000000000000002/messages/@original"));
     const shown = [...dcDraw.results].sort((a, b) => a - b).join("、");
     assert.ok(final.body.embeds[0].description.includes(shown));
+    if (!final.body.embeds[0].image) {
+      const digits = [...shown.replace(/、/g, "")];
+      assert.ok(digits.every((d) => final.body.embeds[0].description.includes(`:lt_${d}:`)), "final reels show digits");
+    }
     assert.ok(final.body.components[0].components[0].url.includes(`room=${dcRoom}`));
   });
 
