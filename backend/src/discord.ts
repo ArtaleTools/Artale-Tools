@@ -79,10 +79,10 @@ function rollingEmbed(env: Env, min: number, max: number, count: number) {
   };
 }
 
-function reelSpinEmbed(min: number, max: number, count: number, reels: string) {
+function reelSpinEmbed(min: number, max: number, count: number, reels: string, title = "🎰 幸運抽獎輪盤轉動中…", color = BRAND_RED) {
   return {
-    title: "🎰 幸運抽獎輪盤轉動中…",
-    color: BRAND_RED,
+    title,
+    color,
     description: reels,
     footer: { text: `範圍 ${min}–${max}・抽取 ${count} 個` },
   };
@@ -149,6 +149,10 @@ const ROLL_MS = 3000 + 4240 + 800;
 // Slot reels: all spin, then columns stop left to right like a slot machine.
 const REEL_SPIN_MS = 3500;
 const REEL_STOP_GAP_MS = 1200;
+// After the last reel stops: hold the stopped reels, a short "開獎" beat, then the result card.
+const REEL_HOLD_MS = 1500;
+const REEL_REVEAL_MS = 800;
+const GOLD = 0xffc542;
 
 /** Stops the reels column by column, the last edit also reveals the result embed. */
 async function animateReels(env: Env, interaction: Interaction, committed: DrawCommitted, origin: string): Promise<void> {
@@ -161,26 +165,33 @@ async function animateReels(env: Env, interaction: Interaction, committed: DrawC
   const digits = reelDigits(committed.draw.max);
   const rows = reelRows(sorted, digits);
   const steps = stopSteps(digits);
-  await sleep(REEL_SPIN_MS);
-  for (const [i, stopped] of steps.entries()) {
-    const last = i === steps.length - 1;
-    const { min, max, count } = committed.draw;
-    const body = last
-      ? resultMessage(env, committed, userId, origin)
-      : { embeds: [reelSpinEmbed(min, max, count, reelContent(rows, digits, stopped))] };
+  const { min, max, count } = committed.draw;
+  const send = async (body: unknown, mustDeliver = false) => {
     try {
       const res = await patch(body);
       if (!res.ok) throw new Error(`edit ${res.status}`);
     } catch (e) {
       // The draw is already committed; a failed edit must never trigger a redraw.
       console.error("discord edit failed", e instanceof Error ? e.message : "unknown");
-      if (last) {
+      if (mustDeliver) {
         await sleep(1000);
         await patch(body).catch(() => undefined);
       }
     }
-    if (!last) await sleep(REEL_STOP_GAP_MS);
+  };
+  const spinning = (stopped: number, title?: string, color?: number) => ({
+    embeds: [reelSpinEmbed(min, max, count, reelContent(rows, digits, stopped), title, color)],
+  });
+
+  await sleep(REEL_SPIN_MS);
+  for (const [i, stopped] of steps.entries()) {
+    const last = i === steps.length - 1;
+    await send(last ? spinning(stopped, "🎯 輪盤停止！") : spinning(stopped));
+    await sleep(last ? REEL_HOLD_MS : REEL_STOP_GAP_MS);
   }
+  await send(spinning(digits, "✨ 開獎！", GOLD));
+  await sleep(REEL_REVEAL_MS);
+  await send(resultMessage(env, committed, userId, origin), true);
 }
 
 /** Shows the page's rolling GIF, then edits the original response once to reveal the committed result. */
