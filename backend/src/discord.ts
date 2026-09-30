@@ -1,0 +1,204 @@
+import { type Env, HttpError, json, listVar } from "./http";
+import type { DrawCommitted } from "./room";
+import { DEFAULT_SETTINGS } from "./validation";
+
+export const COMMAND_NAME = "抽獎";
+
+const InteractionType = { PING: 1, APPLICATION_COMMAND: 2 } as const;
+const ResponseType = { PONG: 1, CHANNEL_MESSAGE: 4 } as const;
+const EPHEMERAL = 1 << 6;
+const BRAND_RED = 0xff4757;
+const MAX_SIGNATURE_AGE_SECONDS = 300;
+
+interface Interaction {
+  id: string;
+  type: number;
+  token: string;
+  application_id: string;
+  guild_id?: string;
+  channel_id?: string;
+  data?: { name: string; options?: { name: string; value: unknown }[] };
+  member?: { user?: { id: string } };
+  user?: { id: string };
+}
+
+function hexToBytes(hex: string): Uint8Array | null {
+  if (!/^(?:[0-9a-f]{2})+$/i.test(hex)) return null;
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+export async function verifyDiscordSignature(
+  publicKeyHex: string,
+  signatureHex: string | null,
+  timestamp: string | null,
+  body: string,
+  nowSeconds = Math.floor(Date.now() / 1000),
+): Promise<boolean> {
+  if (!signatureHex || !timestamp) return false;
+  const ts = Number(timestamp);
+  if (!Number.isInteger(ts) || Math.abs(nowSeconds - ts) > MAX_SIGNATURE_AGE_SECONDS) return false;
+  const key = hexToBytes(publicKeyHex);
+  const sig = hexToBytes(signatureHex);
+  if (!key || key.length !== 32 || !sig || sig.length !== 64) return false;
+  try {
+    const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "Ed25519" }, false, ["verify"]);
+    return await crypto.subtle.verify({ name: "Ed25519" }, cryptoKey, sig, new TextEncoder().encode(timestamp + body));
+  } catch {
+    return false;
+  }
+}
+
+export function discordRoomId(channelId: string): string {
+  return `dc-${channelId}`;
+}
+
+export function isAllowedDiscordChannel(env: Env, guildId: string | undefined, channelId: string | undefined): boolean {
+  const guilds = listVar(env.DISCORD_ALLOWED_GUILDS);
+  const channels = listVar(env.DISCORD_ALLOWED_CHANNELS);
+  return !!guildId && !!channelId && guilds.includes(guildId) && channels.includes(channelId);
+}
+
+function ephemeral(content: string): Response {
+  return json({ type: ResponseType.CHANNEL_MESSAGE, data: { content, flags: EPHEMERAL, allowed_mentions: { parse: [] } } });
+}
+
+function randomBetween(min: number, max: number): number {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return min + (buf[0] % (max - min + 1)); // animation only; bias is irrelevant here
+}
+
+function rollingEmbed(min: number, max: number, count: number, frame: number) {
+  const bar = "▰".repeat(frame + 1) + "▱".repeat(Math.max(0, 5 - frame));
+  return {
+    title: "🎰 幸運抽獎輪盤轉動中…",
+    color: BRAND_RED,
+    description: `# ${randomBetween(min, max)}\n${bar}`,
+    footer: { text: `範圍 ${min}–${max}・抽取 ${count} 個` },
+  };
+}
+
+function watchUrl(env: Env, roomId: string, sequence?: number): string {
+  const url = new URL(env.PAGES_URL);
+  url.searchParams.set("room", roomId);
+  if (sequence !== undefined) url.searchParams.set("draw", String(sequence));
+  return url.toString();
+}
+
+function resultMessage(env: Env, committed: DrawCommitted, userId: string | undefined) {
+  const { draw } = committed;
+  const sorted = [...draw.results].sort((a, b) => a - b);
+  return {
+    embeds: [
+      {
+        title: "🎉 恭喜中獎！",
+        color: BRAND_RED,
+        description: `# ${sorted.join("、")}`,
+        fields: [
+          { name: "範圍", value: `${draw.min}–${draw.max}`, inline: true },
+          { name: "數量", value: String(draw.count), inline: true },
+          { name: "第幾抽", value: `#${draw.sequence}`, inline: true },
+          ...(userId ? [{ name: "抽獎者", value: `<@${userId}>`, inline: true }] : []),
+        ],
+        footer: { text: "號碼由小到大顯示・由伺服器產生並保存" },
+        timestamp: draw.createdAt,
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [{ type: 2, style: 5, label: "在網頁看動畫", url: watchUrl(env, committed.roomId, draw.sequence) }],
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Edits the original response a few times to mimic the page's number roll, then shows the result. */
+async function animate(env: Env, interaction: Interaction, committed: DrawCommitted): Promise<void> {
+  const base = env.DISCORD_API_BASE || "https://discord.com/api/v10";
+  const url = `${base}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`;
+  const edit = (body: unknown) =>
+    fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const { min, max, count } = committed.draw;
+  const userId = interaction.member?.user?.id ?? interaction.user?.id;
+  try {
+    for (const [frame, delay] of [600, 650, 700, 800, 950].entries()) {
+      await sleep(delay);
+      await edit({ embeds: [rollingEmbed(min, max, count, frame + 1)] });
+    }
+    await sleep(1000);
+    const res = await edit(resultMessage(env, committed, userId));
+    if (!res.ok) throw new Error(`final edit ${res.status}`);
+  } catch (e) {
+    // The draw is already committed; a failed edit must never trigger a redraw.
+    console.error("discord edit failed", e instanceof Error ? e.message : "unknown");
+    await edit(resultMessage(env, committed, userId)).catch(() => undefined);
+  }
+}
+
+const ERROR_TEXT: Record<string, string> = {
+  COOLDOWN: "抽獎太頻繁，請稍候幾秒再試。",
+  DAILY_LIMIT: "今日抽獎次數已達上限（UTC 00:00 重置）。",
+};
+
+export async function handleDiscordInteraction(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (!env.DISCORD_PUBLIC_KEY) throw new HttpError(503, "DISCORD_NOT_CONFIGURED", "Discord 尚未設定。");
+  const body = await request.text();
+  if (body.length > 64 * 1024) throw new HttpError(413, "PAYLOAD_TOO_LARGE", "請求內容過大。");
+  const ok = await verifyDiscordSignature(
+    env.DISCORD_PUBLIC_KEY,
+    request.headers.get("X-Signature-Ed25519"),
+    request.headers.get("X-Signature-Timestamp"),
+    body,
+  );
+  if (!ok) return new Response("invalid request signature", { status: 401 });
+
+  const interaction = JSON.parse(body) as Interaction;
+  if (interaction.type === InteractionType.PING) return json({ type: ResponseType.PONG });
+  if (interaction.type !== InteractionType.APPLICATION_COMMAND || interaction.data?.name !== COMMAND_NAME) {
+    return ephemeral("不支援的指令。");
+  }
+  if (!isAllowedDiscordChannel(env, interaction.guild_id, interaction.channel_id)) {
+    return ephemeral("此頻道沒有開放 /抽獎。");
+  }
+
+  const opts = new Map((interaction.data.options ?? []).map((o) => [o.name, o.value]));
+  const roomId = discordRoomId(interaction.channel_id!);
+  const stub = env.ROOMS.get(env.ROOMS.idFromName(roomId));
+  const res = await stub.fetch("https://room/discord-draw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      roomId,
+      requestId: `discord:${interaction.id}`,
+      min: opts.get("最小") ?? DEFAULT_SETTINGS.min,
+      max: opts.get("最大") ?? DEFAULT_SETTINGS.max,
+      count: opts.get("數量") ?? DEFAULT_SETTINGS.count,
+    }),
+  });
+  const payload = (await res.json()) as DrawCommitted & { error?: { code: string; message: string } };
+  if (!res.ok || payload.error) {
+    const code = payload.error?.code ?? "";
+    return ephemeral(`❌ ${ERROR_TEXT[code] ?? payload.error?.message ?? "抽獎失敗，請稍後再試。"}`);
+  }
+
+  // A replayed interaction (Discord retry) already has its message; just answer with the result.
+  if (payload.replayed) return json({ type: ResponseType.CHANNEL_MESSAGE, data: resultMessage(env, payload, undefined) });
+
+  ctx.waitUntil(animate(env, interaction, payload));
+  const { min, max, count } = payload.draw;
+  return json({
+    type: ResponseType.CHANNEL_MESSAGE,
+    data: {
+      embeds: [rollingEmbed(min, max, count, 0)],
+      components: [{ type: 1, components: [{ type: 2, style: 5, label: "網頁同步觀看", url: watchUrl(env, roomId) }] }],
+      allowed_mentions: { parse: [] },
+    },
+  });
+}
+

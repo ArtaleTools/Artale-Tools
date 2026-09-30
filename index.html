@@ -45,7 +45,9 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            overflow: hidden;
+            overflow-x: hidden;
+            padding: 24px 0;
+            box-sizing: border-box;
         }
 
         #confetti-canvas {
@@ -234,6 +236,40 @@
             margin-top: 10px;
             opacity: 0.6;
         }
+
+        /* --- 線上房間 --- */
+        .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .mode-tab {
+            flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid #444;
+            background: #121217; color: #aaa; font-size: 14px; font-weight: bold; cursor: pointer;
+        }
+        .mode-tab.active { border-color: var(--primary); color: #fff; background: rgba(255, 71, 87, 0.15); }
+        .online-panel {
+            background: rgba(0,0,0,0.3); border-radius: 15px; padding: 12px 15px;
+            margin-bottom: 16px; text-align: left; font-size: 13px; color: #bbb;
+        }
+        .online-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
+        .room-code { font-family: 'Courier New', monospace; color: #fff; word-break: break-all; }
+        .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #333; color: #ccc; white-space: nowrap; }
+        .pill.ok { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
+        .pill.warn { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
+        .pill.bad { background: rgba(255, 71, 87, 0.2); color: #ff6b81; }
+        .small-btn {
+            background: transparent; border: 1px solid #555; color: #ddd; border-radius: 8px;
+            padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+        }
+        .small-btn:hover { border-color: var(--primary); color: #fff; }
+        .small-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
+        .notice { min-height: 18px; font-size: 13px; color: #ffa502; margin: -10px 0 12px; }
+        .history { margin-top: 12px; text-align: left; font-size: 13px; }
+        .history summary { cursor: pointer; color: #999; }
+        .history ol { list-style: none; padding: 0; margin: 8px 0 0; max-height: 180px; overflow-y: auto; }
+        .history li { padding: 6px 0; border-top: 1px solid #2a2a33; color: #ccc; }
+        .history .meta { color: #777; font-size: 12px; }
+        .sort-note { font-size: 12px; color: #888; margin-top: 6px; }
+        .input-grid.locked { opacity: 0.5; pointer-events: none; }
+        #turnstile-box { margin-top: 10px; display: flex; justify-content: center; }
+        [hidden] { display: none !important; }
     </style>
 </head>
 <body>
@@ -244,6 +280,38 @@
     <div class="card" id="mainCard">
         <h2>Artale 繁中槍手群</h2>
         <div class="subtitle lucky-text">幸運抽獎輪盤</div>
+
+        <div class="mode-tabs" id="modeTabs">
+            <button class="mode-tab active" id="tabLocal" type="button">本機抽獎</button>
+            <button class="mode-tab" id="tabOnline" type="button">線上房間</button>
+        </div>
+
+        <div class="online-panel" id="onlinePanel" hidden>
+            <div id="onlineSetup">
+                <div class="online-row">
+                    <span id="setupText">建立房間後，分享連結給大家同步觀看抽獎。</span>
+                    <button class="small-btn primary" id="createRoomBtn" type="button">建立線上房間</button>
+                </div>
+                <div id="turnstile-box"></div>
+            </div>
+            <div id="roomInfo" hidden>
+                <div class="online-row">
+                    <span>房間 <span class="room-code" id="roomCode"></span></span>
+                    <span class="pill" id="connPill">連線中</span>
+                </div>
+                <div class="online-row">
+                    <span id="roleText"></span>
+                    <span>
+                        <button class="small-btn" id="soundBtn" type="button">🔇 啟用音效</button>
+                        <button class="small-btn" id="copyBtn" type="button">複製觀看連結</button>
+                    </span>
+                </div>
+                <div class="online-row" id="hostRow" hidden>
+                    <span id="expiresText" class="meta"></span>
+                    <button class="small-btn" id="closeRoomBtn" type="button">關閉房間</button>
+                </div>
+            </div>
+        </div>
         
         <div class="input-grid">
             <div class="group">
@@ -274,12 +342,20 @@
         
         <div id="display"><span class="ready-text">READY</span></div>
         
+        <div class="notice" id="notice"></div>
+
         <button id="btn" class="draw-btn" onclick="startDraw()">啟動抽獎</button>
+
+        <details class="history" id="historyBox" hidden>
+            <summary>抽獎紀錄（最近 100 次）</summary>
+            <ol id="historyList"></ol>
+        </details>
         
         <div class="footer-note">製作:OOKouun</div>
     </div>
 </div>
 
+<script src="config.js"></script>
 <script>
     // 數字增減邏輯
     function step(id, val) {
@@ -290,8 +366,8 @@
         input.value = newValue;
     }
 
-    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const canvas = document.getElementById('confetti-canvas');
+    const $ = (id) => document.getElementById(id);
+    const canvas = $('confetti-canvas');
     const ctx = canvas.getContext('2d');
     let pieces = [];
 
@@ -336,8 +412,16 @@
         if (pieces.length > 0) requestAnimationFrame(updateConfetti);
     }
 
-    function playTick(freq, type, duration) {
+    // 音效：延後到使用者互動時才建立 AudioContext（觀眾頁面需先點「啟用音效」）
+    let audioCtx = null;
+    function ensureAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
+        updateSoundBtn();
+    }
+
+    function playTick(freq, type, duration) {
+        if (!audioCtx || audioCtx.state !== 'running') return;
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.type = type;
@@ -350,34 +434,43 @@
         osc.stop(audioCtx.currentTime + duration);
     }
 
-    function startDraw() {
-        const vMin = parseInt(document.getElementById('min').value),
-              vMax = parseInt(document.getElementById('max').value),
-              n = parseInt(document.getElementById('qty').value),
-              card = document.getElementById('mainCard'),
-              disp = document.getElementById('display'),
-              btn = document.getElementById('btn');
+    function showNumber(text, style, className) {
+        const span = document.createElement('span');
+        if (style) span.style.cssText = style;
+        if (className) span.className = className;
+        span.textContent = text;
+        $('display').replaceChildren(span);
+    }
 
-        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
-
-        btn.disabled = true;
-        btn.innerText = "輪盤轉動中...";
-        
-        let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
-        for (let i = pool.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [pool[i], pool[j]] = [pool[j], pool[i]];
+    function showWinners(winners, note) {
+        const title = document.createElement('div');
+        title.className = 'win-text';
+        title.textContent = '恭喜中獎！';
+        const nums = document.createElement('div');
+        nums.className = 'win-numbers lucky-text';
+        nums.textContent = winners.join('、');
+        const children = [title, nums];
+        if (note) {
+            const n = document.createElement('div');
+            n.className = 'sort-note';
+            n.textContent = note;
+            children.push(n);
         }
-        const winners = pool.slice(0, n).sort((a,b)=>a-b);
+        $('display').replaceChildren(...children);
+    }
 
+    // 原本的跳號動畫：50 次跳號、25 次後震動、結束時彩帶與音效。winners 已由呼叫端決定。
+    function playRoll(vMin, vMax, winners, note, onDone) {
+        const card = $('mainCard');
         let count = 0;
         let speed = 50;
-        
+
         function roll() {
             count++;
-            disp.innerHTML = `<span style="font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);">${Math.floor(Math.random() * (vMax - vMin + 1)) + vMin}</span>`;
-            playTick(400 + count * 15, 'square', 0.05); 
-            
+            showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin),
+                'font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);');
+            playTick(400 + count * 15, 'square', 0.05);
+
             if (count > 25) card.style.animation = "shake 0.1s infinite";
 
             if (count < 50) {
@@ -385,19 +478,444 @@
                 if (count > 35) speed += 20;
             } else {
                 card.style.animation = "none";
-                disp.innerHTML = `
-                    <div class="win-text">恭喜中獎！</div>
-                    <div class="win-numbers lucky-text">${winners.join('、')}</div>
-                `;
+                showWinners(winners, note);
                 playTick(150, 'sawtooth', 0.5);
                 fireConfetti();
-                
-                btn.disabled = false;
-                btn.innerText = "再次啟動抽獎";
+                onDone && onDone();
             }
         }
         roll();
     }
+
+    function setButton(disabled, text) {
+        const btn = $('btn');
+        btn.disabled = disabled;
+        btn.innerText = text;
+    }
+
+    // ---------- 本機抽獎（沿用原邏輯） ----------
+    function startLocalDraw() {
+        const vMin = parseInt($('min').value),
+              vMax = parseInt($('max').value),
+              n = parseInt($('qty').value);
+
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
+
+        setButton(true, "輪盤轉動中...");
+
+        let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        const winners = pool.slice(0, n).sort((a,b)=>a-b);
+
+        playRoll(vMin, vMax, winners, '', () => setButton(false, "再次啟動抽獎"));
+    }
+
+    function startDraw() {
+        ensureAudio();
+        if (online.roomId) hostDraw();
+        else startLocalDraw();
+    }
+
+    // ---------- 線上房間 ----------
+    const CONFIG = window.ARTALE_CONFIG || {};
+    const API_BASE_URL = (CONFIG.API_BASE_URL || '').trim();
+    const TOKEN_PREFIX = 'artale-host-token:';
+    const online = {
+        roomId: null, kind: null, hostToken: null, version: 0, lastSeq: 0, status: 'idle',
+        ws: null, retry: 0, retryTimer: null, pingTimer: null, stopped: false,
+        queue: [], animating: false, replaySeq: null, history: [], pendingRequest: null,
+    };
+
+    function apiUrl(path) { return new URL(path, API_BASE_URL).toString(); }
+    function wsUrl(roomId) {
+        const u = new URL(`/api/rooms/${encodeURIComponent(roomId)}/ws`, API_BASE_URL);
+        u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+        return u.toString();
+    }
+    function pageUrl(params) {
+        const u = new URL(location.href);
+        u.search = '';
+        u.hash = '';
+        for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+        return u.toString();
+    }
+    function notice(text) { $('notice').textContent = text || ''; }
+
+    function loadToken(roomId) { try { return localStorage.getItem(TOKEN_PREFIX + roomId); } catch { return null; } }
+    function saveToken(roomId, token) { try { localStorage.setItem(TOKEN_PREFIX + roomId, token); } catch {} }
+    function clearToken(roomId) { try { localStorage.removeItem(TOKEN_PREFIX + roomId); } catch {} online.hostToken = null; }
+
+    async function apiFetch(path, init) {
+        let res;
+        try {
+            res = await fetch(apiUrl(path), init);
+        } catch {
+            return { ok: false, status: 0, network: true, body: null };
+        }
+        let body = null;
+        try { body = await res.json(); } catch { /* 平台額度或非 JSON 錯誤 */ }
+        return { ok: res.ok, status: res.status, body, retryAfter: res.headers.get('Retry-After') };
+    }
+
+    function errorText(r) {
+        if (r.network) return '網路錯誤，無法連線到線上服務。';
+        if (r.body && r.body.error) return r.body.error.message;
+        if (r.status === 503 || r.status >= 500 || !r.body) return '線上服務暫時無法使用（可能是免費額度已用完），請稍後再試。';
+        return `發生錯誤（HTTP ${r.status}）。`;
+    }
+
+    function setConn(state) {
+        online.status = state;
+        const pill = $('connPill');
+        const map = { connecting: ['連線中', 'warn'], connected: ['已連線', 'ok'], disconnected: ['已斷線・結果未同步', 'bad'], closed: ['已關閉', ''] };
+        const [text, cls] = map[state] || [state, ''];
+        pill.textContent = text;
+        pill.className = 'pill ' + cls;
+    }
+
+    function updateSoundBtn() {
+        const on = audioCtx && audioCtx.state === 'running';
+        $('soundBtn').textContent = on ? '🔊 音效已開' : '🔇 啟用音效';
+    }
+
+    function isHost() { return !!online.hostToken && online.kind === 'web'; }
+
+    function refreshControls() {
+        const inRoom = !!online.roomId;
+        const host = isHost();
+        const active = online.status !== 'closed';
+        $('onlineSetup').hidden = inRoom;
+        $('roomInfo').hidden = !inRoom;
+        $('historyBox').hidden = !inRoom;
+        $('hostRow').hidden = !(host && active);
+        $('btn').hidden = inRoom && !(host && active);
+        document.querySelector('.input-grid').classList.toggle('locked', inRoom && !(host && active));
+        if (!inRoom) return;
+        $('roomCode').textContent = online.kind === 'discord' ? 'Discord 頻道' : online.roomId;
+        $('roleText').textContent = online.kind === 'discord'
+            ? '在 Discord 輸入 /抽獎 即可觸發'
+            : (host ? '你是房主' : '觀眾（唯讀）');
+    }
+
+    function validDraw(d) {
+        return d && Number.isInteger(d.sequence) && Number.isInteger(d.min) && Number.isInteger(d.max)
+            && Array.isArray(d.results) && d.results.every(Number.isInteger);
+    }
+
+    function sortedResults(d) { return [...d.results].sort((a, b) => a - b); }
+
+    function fmtTime(iso) {
+        return new Date(iso).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+    }
+
+    function renderHistory() {
+        const items = online.history.map((d) => {
+            const li = document.createElement('li');
+            const nums = document.createElement('div');
+            nums.textContent = `#${d.sequence}　${sortedResults(d).join('、')}`;
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            meta.textContent = `${fmtTime(d.createdAt)}・範圍 ${d.min}–${d.max}・${d.count} 個${d.source === 'discord' ? '・Discord' : ''}`;
+            li.append(nums, meta);
+            return li;
+        });
+        $('historyList').replaceChildren(...items);
+    }
+
+    function enqueueAnimation(draw) {
+        online.queue.push(draw);
+        if (!online.animating) nextAnimation();
+    }
+
+    function showSettings(s) {
+        $('min').value = s.min; $('max').value = s.max; $('qty').value = s.count;
+    }
+
+    function nextAnimation() {
+        const draw = online.queue.shift();
+        if (!draw) {
+            online.animating = false;
+            if (isHost() && online.status !== 'closed' && !online.pendingRequest) setButton(false, "再次啟動抽獎");
+            return;
+        }
+        online.animating = true;
+        if (isHost()) setButton(true, "輪盤轉動中...");
+        else showSettings(draw);
+        playRoll(draw.min, draw.max, sortedResults(draw), `第 ${draw.sequence} 抽・由小到大顯示`, nextAnimation);
+    }
+
+    function showStatic(draw) {
+        if (draw) showWinners(sortedResults(draw), `第 ${draw.sequence} 抽・由小到大顯示`);
+    }
+
+    function applySnapshot(snap) {
+        online.kind = snap.kind;
+        online.version = snap.version;
+        online.lastSeq = snap.lastSequence;
+        online.history = (snap.history || []).filter(validDraw);
+        if (snap.settings) showSettings(snap.settings);
+        if (snap.expiresAt && snap.kind === 'web') $('expiresText').textContent = `到期：${fmtTime(snap.expiresAt)}`;
+        renderHistory();
+        if (snap.status === 'closed') markClosed('房間已關閉，以下為保留的紀錄。');
+        refreshControls();
+
+        if (online.replaySeq !== null) {
+            const target = online.history.find((d) => d.sequence === online.replaySeq);
+            online.replaySeq = null;
+            if (target) { enqueueAnimation(target); return; }
+            notice('找不到指定的抽獎紀錄（僅保留最近 100 次）。');
+        }
+        if (!online.animating) {
+            if (snap.latestDraw && validDraw(snap.latestDraw)) showStatic(snap.latestDraw);
+            else showNumber(online.kind === 'discord' ? '等待 /抽獎' : 'READY', online.kind === 'discord' ? 'font-size: 40px;' : '', 'ready-text');
+        }
+    }
+
+    async function resync() {
+        const r = await apiFetch(`/api/rooms/${encodeURIComponent(online.roomId)}`, {});
+        if (r.ok && r.body) { applySnapshot(r.body); return true; }
+        if (r.status === 404 || r.status === 410) {
+            markClosed(r.status === 404 ? '找不到房間，請確認連結或建立新房間。' : '房間已過期或已清除。');
+            return false;
+        }
+        return null; // 暫時性錯誤
+    }
+
+    function handleDrawEvent(msg) {
+        const draw = msg.draw;
+        if (!validDraw(draw) || draw.sequence <= online.lastSeq) return; // 去重
+        if (draw.sequence > online.lastSeq + 1) {
+            // 跳號：先以 snapshot 補齊，再播放這一次
+            resync().then(() => enqueueAnimation(draw));
+            online.lastSeq = draw.sequence;
+            return;
+        }
+        online.lastSeq = draw.sequence;
+        online.version = Math.max(online.version, msg.version || 0);
+        online.history = [draw, ...online.history.filter((d) => d.sequence !== draw.sequence)].slice(0, 100);
+        renderHistory();
+        enqueueAnimation(draw);
+    }
+
+    function markClosed(text) {
+        online.stopped = true;
+        if (online.hostToken) clearToken(online.roomId);
+        clearTimeout(online.retryTimer);
+        clearInterval(online.pingTimer);
+        if (online.ws) { try { online.ws.close(); } catch {} online.ws = null; }
+        setConn('closed');
+        notice(text);
+        refreshControls();
+    }
+
+    function connect() {
+        if (online.stopped) return;
+        setConn('connecting');
+        let ws;
+        try { ws = new WebSocket(wsUrl(online.roomId)); } catch { scheduleReconnect(); return; }
+        online.ws = ws;
+        ws.onopen = () => {
+            online.retry = 0;
+            setConn('connected');
+            notice('');
+            clearInterval(online.pingTimer);
+            online.pingTimer = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 45000);
+        };
+        ws.onmessage = (e) => {
+            if (e.data === 'pong') return;
+            let msg;
+            try { msg = JSON.parse(e.data); } catch { return; }
+            if (msg.type === 'snapshot') applySnapshot(msg);
+            else if (msg.type === 'draw_committed') handleDrawEvent(msg);
+            else if (msg.type === 'room_closed') markClosed('房主已關閉房間。');
+            else if (msg.type === 'room_expired') markClosed('房間已過期。');
+        };
+        ws.onclose = async () => {
+            clearInterval(online.pingTimer);
+            if (online.stopped || online.ws !== ws) return;
+            setConn('disconnected');
+            // WebSocket 失敗拿不到 HTTP 狀態，先查 snapshot 決定是否該停止重連
+            const alive = await resync();
+            if (alive === false) return;
+            if (online.status === 'closed') return;
+            scheduleReconnect();
+        };
+    }
+
+    function scheduleReconnect() {
+        online.retry++;
+        if (online.retry > 8) {
+            setConn('disconnected');
+            notice('多次重連失敗，請重新整理頁面。');
+            return;
+        }
+        const base = Math.min(30000, 1000 * 2 ** (online.retry - 1));
+        const delay = base / 2 + Math.random() * base / 2;
+        clearTimeout(online.retryTimer);
+        online.retryTimer = setTimeout(connect, delay);
+    }
+
+    function enterRoom(roomId, replaySeq) {
+        online.roomId = roomId;
+        online.kind = roomId.startsWith('dc-') ? 'discord' : 'web';
+        online.hostToken = online.kind === 'web' ? loadToken(roomId) : null;
+        online.replaySeq = replaySeq;
+        online.stopped = false;
+        selectTab('online');
+        refreshControls();
+        showNumber('連線中…', 'font-size: 36px;');
+        connect();
+    }
+
+    async function hostDraw() {
+        const vMin = parseInt($('min').value), vMax = parseInt($('max').value), n = parseInt($('qty').value);
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
+        if (online.animating || online.pendingRequest) return;
+
+        const request = { requestId: crypto.randomUUID(), expectedVersion: online.version, min: vMin, max: vMax, count: n };
+        online.pendingRequest = request;
+        setButton(true, "送出中...");
+        notice('');
+        let r;
+        // 逾時／網路錯誤時用「相同 requestId、相同內容」重試，不會多抽一次
+        for (let attempt = 0; attempt < 3; attempt++) {
+            r = await apiFetch(`/api/rooms/${encodeURIComponent(online.roomId)}/draw`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${online.hostToken}` },
+                body: JSON.stringify(request),
+            });
+            if (!(r.network || (r.status >= 500 && !r.body))) break;
+            await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
+        }
+        online.pendingRequest = null;
+
+        if (r.ok && r.body) {
+            handleDrawEvent(r.body);
+            if (!online.animating) setButton(false, "再次啟動抽獎");
+            return;
+        }
+        notice(errorText(r));
+        if (r.status === 409) await resync();
+        if (r.status === 401) { clearToken(online.roomId); refreshControls(); notice('房主驗證失敗，已切換為觀眾。'); }
+        if (r.status === 410) markClosed('房間已關閉或過期。');
+        if (!online.animating) setButton(false, "啟動抽獎");
+    }
+
+    // ---------- 建立房間（Turnstile） ----------
+    let turnstileReady = null;
+    function loadTurnstile() {
+        if (turnstileReady) return turnstileReady;
+        turnstileReady = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+            s.async = true;
+            s.onload = () => resolve(window.turnstile);
+            s.onerror = () => reject(new Error('turnstile'));
+            document.head.appendChild(s);
+        });
+        return turnstileReady;
+    }
+
+    async function getTurnstileToken() {
+        if (!CONFIG.TURNSTILE_SITE_KEY) return '';
+        const ts = await loadTurnstile();
+        return new Promise((resolve, reject) => {
+            $('turnstile-box').replaceChildren();
+            ts.render('#turnstile-box', {
+                sitekey: CONFIG.TURNSTILE_SITE_KEY,
+                callback: resolve,
+                'error-callback': () => reject(new Error('turnstile')),
+            });
+        });
+    }
+
+    async function createRoom() {
+        ensureAudio();
+        const btn = $('createRoomBtn');
+        btn.disabled = true;
+        notice('');
+        try {
+            let token = '';
+            try { token = await getTurnstileToken(); } catch { notice('人機驗證載入失敗，請重試。'); return; }
+            const r = await apiFetch('/api/rooms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ turnstileToken: token }),
+            });
+            if (!r.ok || !r.body || !r.body.roomId) { notice(errorText(r)); return; }
+            saveToken(r.body.roomId, r.body.hostToken);
+            history.replaceState(null, '', pageUrl({ room: r.body.roomId }));
+            $('turnstile-box').replaceChildren();
+            enterRoom(r.body.roomId, null);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function closeRoom() {
+        if (!confirm('確定要關閉房間？關閉後無法再抽獎，紀錄保留 7 天。')) return;
+        const r = await apiFetch(`/api/rooms/${encodeURIComponent(online.roomId)}/close`, {
+            method: 'POST', headers: { Authorization: `Bearer ${online.hostToken}` },
+        });
+        if (r.ok) markClosed('房間已關閉。');
+        else notice(errorText(r));
+    }
+
+    async function copyLink() {
+        const url = pageUrl({ room: online.roomId });
+        try { await navigator.clipboard.writeText(url); notice('已複製觀看連結。'); }
+        catch { prompt('複製觀看連結：', url); }
+    }
+
+    function selectTab(mode) {
+        $('tabLocal').classList.toggle('active', mode === 'local');
+        $('tabOnline').classList.toggle('active', mode === 'online');
+        $('onlinePanel').hidden = mode !== 'online';
+        if (mode === 'local') {
+            $('btn').hidden = false;
+            document.querySelector('.input-grid').classList.remove('locked');
+            $('historyBox').hidden = true;
+            if (!online.animating) setButton(false, "啟動抽獎");
+        } else {
+            refreshControls();
+        }
+    }
+
+    function leaveRoom() {
+        if (!online.roomId) return;
+        online.stopped = true;
+        clearTimeout(online.retryTimer);
+        clearInterval(online.pingTimer);
+        if (online.ws) { try { online.ws.close(); } catch {} online.ws = null; }
+        online.roomId = null; online.kind = null; online.hostToken = null; online.queue = [];
+        history.replaceState(null, '', pageUrl({}));
+        notice('');
+        showNumber('READY', '', 'ready-text');
+    }
+
+    $('tabLocal').onclick = () => { leaveRoom(); selectTab('local'); };
+    $('tabOnline').onclick = () => {
+        selectTab('online');
+        if (!API_BASE_URL) { $('setupText').textContent = '線上功能尚未設定。'; $('createRoomBtn').hidden = true; }
+    };
+    $('createRoomBtn').onclick = createRoom;
+    $('closeRoomBtn').onclick = closeRoom;
+    $('copyBtn').onclick = copyLink;
+    $('soundBtn').onclick = ensureAudio;
+    document.addEventListener('pointerdown', () => { if (online.roomId) ensureAudio(); }, { once: true });
+
+    (function init() {
+        const params = new URLSearchParams(location.search);
+        const room = params.get('room');
+        if (!room) return;
+        if (!API_BASE_URL) { selectTab('online'); $('onlineSetup').hidden = false; $('setupText').textContent = '線上功能尚未設定，無法觀看房間。'; $('createRoomBtn').hidden = true; return; }
+        if (!/^([A-Za-z0-9_-]{22}|dc-\d{15,21})$/.test(room)) { selectTab('online'); notice('房間連結格式錯誤。'); return; }
+        const drawParam = parseInt(params.get('draw'), 10);
+        enterRoom(room, Number.isInteger(drawParam) ? drawParam : null);
+    })();
 </script>
 
 </body>

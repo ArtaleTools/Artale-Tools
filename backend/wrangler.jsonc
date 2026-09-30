@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "artale-draw",
+  "main": "src/index.ts",
+  // workerd 1.20260930 shipped with wrangler 4.145.0 (installed 2026-10-01).
+  "compatibility_date": "2026-09-30",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "ratelimits": [
+    { "name": "CREATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "CONNECT_LIMITER", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
+  ],
+  "observability": { "enabled": true },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "ALLOWED_ORIGINS": "https://artaletools.github.io",
+    "PAGES_URL": "https://artaletools.github.io/Artale-Tools/",
+    "ROOM_TTL_SECONDS": "86400",
+    "CLOSED_ROOM_RETENTION_SECONDS": "604800",
+    "MAX_CONNECTIONS_PER_ROOM": "100",
+    "DRAW_COOLDOWN_SECONDS": "2",
+    "MAX_DRAWS_PER_UTC_DAY_PER_ROOM": "500",
+    // Public values from the Discord Developer Portal (General Information page).
+    "DISCORD_APPLICATION_ID": "",
+    "DISCORD_PUBLIC_KEY": "",
+    "DISCORD_ALLOWED_GUILDS": "1364050807544090695",
+    "DISCORD_ALLOWED_CHANNELS": "1364050809549225989"
+  }
+  // Secret (not in this file): `npx wrangler secret put TURNSTILE_SECRET`
+}

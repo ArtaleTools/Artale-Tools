@@ -1,0 +1,28 @@
+{
+  "name": "artale-draw",
+  "version": "1.0.0",
+  "description": "Artale-Tools online draw backend (Cloudflare Workers + Durable Objects) and Discord /抽獎",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc -p .",
+    "register-commands": "node scripts/register-commands.mjs",
+    "smoke": "node tests/smoke.mjs"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260930.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.145.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
