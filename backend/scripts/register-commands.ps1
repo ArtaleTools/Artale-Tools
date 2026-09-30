@@ -1,4 +1,4 @@
-# 註冊 Discord /抽獎 指令。Bot Token 以隱藏輸入取得，只存在這個 PowerShell 程序中。
+﻿# 註冊 Discord /抽獎 指令。Bot Token 以隱藏輸入取得，只存在這個 PowerShell 程序中。
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
 $secure = Read-Host "請貼上 Bot Token（輸入不會顯示）" -AsSecureString
