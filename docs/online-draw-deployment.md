@@ -62,7 +62,7 @@ npm run register-commands
 Remove-Item Env:DISCORD_BOT_TOKEN
 ```
 
-Guild 指令立即生效。指令選項：`最小`（預設 1）、`最大`（預設 50）、`數量`（預設 1）。
+指令為全域註冊，支援「使用者安裝」（裝在你的帳號，不需要伺服器管理權限）與「伺服器安裝」；Worker 仍只允許指定的伺服器與頻道使用。使用者安裝連結：`https://discord.com/oauth2/authorize?client_id=1554897351750058044&scope=applications.commands&integration_type=1`。指令選項：`最小`（預設 1）、`最大`（預設 50）、`數量`（預設 1）。
 
 ## 6. 設定前端並發布
 
