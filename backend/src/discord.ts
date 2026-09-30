@@ -147,8 +147,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const ROLL_MS = 3000 + 4240 + 800;
 
 // Slot reels: all spin, then columns stop left to right like a slot machine.
-const REEL_SPIN_MS = 2200;
-const REEL_STOP_GAP_MS = 750;
+const REEL_SPIN_MS = 3500;
+const REEL_STOP_GAP_MS = 1200;
 
 /** Stops the reels column by column, the last edit also reveals the result embed. */
 async function animateReels(env: Env, interaction: Interaction, committed: DrawCommitted, origin: string): Promise<void> {
