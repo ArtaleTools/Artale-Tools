@@ -412,13 +412,25 @@
         if (pieces.length > 0) requestAnimationFrame(updateConfetti);
     }
 
-    // 音效：延後到使用者互動時才建立 AudioContext（觀眾頁面需先點「啟用音效」）
+    // 音效預設開啟：載入時就嘗試啟用；瀏覽器若要求先互動，點畫面任何地方或按任何鍵就會自動開啟。
     let audioCtx = null;
     function ensureAudio() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioCtx.onstatechange = updateSoundBtn;
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        } catch {}
         updateSoundBtn();
     }
+    function unlockAudio() {
+        ensureAudio();
+        if (audioCtx && audioCtx.state === 'running') {
+            for (const ev of ['pointerdown', 'keydown', 'touchstart']) document.removeEventListener(ev, unlockAudio, true);
+        }
+    }
+    for (const ev of ['pointerdown', 'keydown', 'touchstart']) document.addEventListener(ev, unlockAudio, true);
 
     function playTick(freq, type, duration) {
         if (!audioCtx || audioCtx.state !== 'running') return;
@@ -578,7 +590,10 @@
 
     function updateSoundBtn() {
         const on = audioCtx && audioCtx.state === 'running';
-        $('soundBtn').textContent = on ? '🔊 音效已開' : '🔇 啟用音效';
+        const btn = $('soundBtn');
+        if (!btn) return;
+        btn.textContent = on ? '🔊 音效已開' : '🔇 點畫面任一處開啟音效';
+        btn.classList.toggle('primary', !on);
     }
 
     function isHost() { return !!online.hostToken && online.kind === 'web'; }
@@ -907,7 +922,7 @@
     $('closeRoomBtn').onclick = closeRoom;
     $('copyBtn').onclick = copyLink;
     $('soundBtn').onclick = ensureAudio;
-    document.addEventListener('pointerdown', () => { if (online.roomId) ensureAudio(); }, { once: true });
+    ensureAudio(); // 預設開啟（瀏覽器允許時立即生效）
 
     (function init() {
         const params = new URLSearchParams(location.search);

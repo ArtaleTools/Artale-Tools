@@ -66,7 +66,7 @@ function ephemeral(content: string): Response {
 
 /** GIFs recorded from the page's own animation (assets/ on GitHub Pages). */
 function assetUrl(env: Env, name: string): string {
-  return new URL(`assets/${name}?v=2`, env.PAGES_URL).toString();
+  return new URL(`assets/${name}?v=3`, env.PAGES_URL).toString();
 }
 
 function rollingEmbed(env: Env, min: number, max: number, count: number) {
