@@ -265,7 +265,7 @@
             margin: 0 0 20px; padding: 10px 15px; font-size: 14px; font-weight: bold;
             background: rgba(0,0,0,0.3); border-radius: 15px;
         }
-        .exclude-row label { display: flex; align-items: center; gap: 10px; cursor: pointer; color: #fff; user-select: none; }
+        .exclude-row label { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-size: 14px; font-weight: bold; text-align: center; cursor: pointer; color: #fff; user-select: none; }
         .exclude-row input[type="checkbox"] {
             appearance: none; -webkit-appearance: none;
             flex: none; width: 22px; height: 22px; margin: 0; padding: 0;
@@ -282,7 +282,8 @@
         .exclude-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
         .exclude-row input[type="checkbox"]:hover,
         .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; }
-        .exclude-row .meta { color: #aaa; font-size: 14px; font-weight: bold; }
+        .exclude-row .meta { color: #aaa; font-size: 14px; font-weight: bold; line-height: 1; }
+        .exclude-row .small-btn { font-size: 14px; font-weight: bold; }
         .notice { min-height: 18px; font-size: 13px; color: #ffa502; margin: -10px 0 12px; }
         .history { margin-top: 12px; text-align: left; font-size: 13px; }
         .history summary { cursor: pointer; color: #999; }
