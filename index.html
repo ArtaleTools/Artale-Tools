@@ -428,27 +428,26 @@
         }
         /* 結果號碼：與跳號同樣的白字發光，大小等於跳號最後一拍 */
         .win-numbers {
-            /* 1 個號碼與跳號最後一拍同大；多個號碼時縮到能放進一行（4 個以上排兩行）。
-               分母 = 該數量下一行所需寬度（em）：兩位數 1.2em、「、」0.67em、間距 0.33em */
-            font-size: min(calc(var(--fs-roll) * var(--roll-end)), 100cqi / 1.3);
+            /* --cols：每行最多幾個號碼（由程式依數量設定）。以兩位數 1.2em、間距 0.6em 估算，
+               一行寬 = 1.8 × cols − 0.6 em；字級取「跳號最後一拍大小」與「一行塞得下」的較小值 */
+            --cols: 1;
+            font-size: min(calc(var(--fs-roll) * var(--roll-end)), 100cqi / (1.8 * var(--cols) - 0.5));
             line-height: 1.2;
             color: var(--text);
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.35em 0.33em;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35em;
             animation: resultIn 0.5s var(--ease-out) both;
         }
 
-        .win-numbers:has(> :nth-child(2)) { font-size: min(calc(var(--fs-roll) * var(--roll-end)), 100cqi / 3.5); }
-        .win-numbers:has(> :nth-child(3)) { font-size: min(calc(var(--fs-roll) * var(--roll-end)), 100cqi / 5.7); }
-        .win-numbers:has(> :nth-child(7)) { font-size: min(calc(var(--fs-roll) * var(--roll-end)), 100cqi / 7.9); }
+        .win-row { display: flex; justify-content: center; gap: 0.6em; }
 
         /* 每個號碼裁到數字字高，才能和指針精準對齊 */
         .win-num { white-space: nowrap; text-box: trim-both cap alphabetic; }
-        /* 「、」字形在字寬中間，右側約 0.33em 是空白：以負邊距收掉，行尾就不會偏左；號碼間距由 gap 補回 */
-        .win-sep { display: inline-block; width: 1em; margin-right: -0.33em; }
+        /* 「、」只保留在文字內容（複製時仍有分隔），畫面上以間距分隔號碼 */
+        .win-sep { display: none; }
         .sort-note { font-family: var(--font); font-size: var(--fs-label); line-height: 1.3; font-weight: 400; color: var(--text-4); margin-top: 6px; }
 
         /* ---------- 主按鈕 ---------- */
@@ -842,7 +841,17 @@
         title.textContent = '恭喜中獎！';
         const nums = document.createElement('div');
         nums.className = 'win-numbers';
+        // 每行數量：讓各行盡量平均（4 → 2+2、5 → 3+2、9 → 3+3+3），每行各自置中
+        const n = winners.length;
+        const cols = n <= 3 ? n : n === 4 ? 2 : n <= 6 ? 3 : n <= 8 ? 4 : n === 9 ? 3 : n <= 12 ? 4 : 5;
+        nums.style.setProperty('--cols', cols);
+        let row;
         winners.forEach((w, i) => {
+            if (i % cols === 0) {
+                row = document.createElement('div');
+                row.className = 'win-row';
+                nums.append(row);
+            }
             const item = document.createElement('span');
             item.className = 'win-num';
             item.textContent = w;
@@ -852,7 +861,7 @@
                 sep.textContent = '、';
                 item.append(sep);
             }
-            nums.append(item);
+            row.append(item);
         });
         const block = document.createElement('div');
         block.className = 'win-block';
