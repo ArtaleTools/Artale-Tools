@@ -541,7 +541,7 @@
               vMax = parseInt($('max').value),
               n = parseInt($('qty').value);
 
-        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || isNaN(n) || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
 
         setButton(true, "輪盤轉動中...");
 
@@ -572,6 +572,10 @@
         $('excludeInfo').textContent = on && localWon.size ? `已中獎 ${localWon.size} 個` : '';
         $('excludeResetBtn').hidden = !(on && localWon.size);
     }
+    // 範圍改變就視為新一輪，立即清空並更新顯示（不必等到下次抽獎）
+    ['min', 'max'].forEach(id => $(id).addEventListener('input', () => {
+        if (localWon.size && localWonKey !== parseInt($('min').value) + ':' + parseInt($('max').value)) { localWon.clear(); updateExcludeInfo(); }
+    }));
     $('excludeWon').onchange = () => { if (!$('excludeWon').checked) localWon.clear(); updateExcludeInfo(); };
     $('excludeResetBtn').onclick = () => { localWon.clear(); updateExcludeInfo(); };
 
@@ -837,7 +841,7 @@
 
     async function hostDraw() {
         const vMin = parseInt($('min').value), vMax = parseInt($('max').value), n = parseInt($('qty').value);
-        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || isNaN(n) || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
         if (online.animating || online.pendingRequest) return;
 
         const request = { requestId: crypto.randomUUID(), expectedVersion: online.version, min: vMin, max: vMax, count: n };
