@@ -97,14 +97,6 @@
             50% { transform: scale(1.05); opacity: 1; }
         }
 
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            25% { transform: translate(-2px, -1px) rotate(-1deg); }
-            50% { transform: translate(-3px, 1px) rotate(0deg); }
-            75% { transform: translate(2px, 2px) rotate(1deg); }
-            100% { transform: translate(-1px, -1px) rotate(0deg); }
-        }
-
         @keyframes resultIn {
             0% { opacity: 0; transform: translateY(8px) scale(0.92); }
             60% { opacity: 1; transform: translateY(0) scale(1.04); }
@@ -700,18 +692,28 @@
     }
     for (const ev of ['pointerdown', 'keydown', 'touchstart']) document.addEventListener(ev, unlockAudio, true);
 
-    function playTick(freq, type, duration) {
+    // at：音訊時鐘上的播放時間（秒），省略則立即播放
+    function playTick(freq, type, duration, at) {
         if (!audioCtx || audioCtx.state !== 'running') return;
+        const t = at ?? audioCtx.currentTime;
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+        osc.start(t);
+        osc.stop(t + duration);
+    }
+
+    // 音訊時鐘時間 → 聲音實際從喇叭出來的 performance.now() 時間（含輸出延遲）
+    function audioTimeToPerf(t) {
+        const ts = audioCtx.getOutputTimestamp ? audioCtx.getOutputTimestamp() : null;
+        if (ts && ts.performanceTime > 0) return ts.performanceTime + (t - ts.contextTime) * 1000;
+        const latency = (audioCtx.outputLatency || 0) + (audioCtx.baseLatency || 0);
+        return performance.now() + (t - audioCtx.currentTime + latency) * 1000;
     }
 
     function showNumber(text, style, className) {
@@ -751,30 +753,55 @@
     }
 
     // 原本的跳號動畫：50 次跳號、25 次後震動、結束時彩帶與音效。winners 已由呼叫端決定。
+    // 節奏與原版相同（每 50ms 一拍，第 36 拍起每拍再慢 20ms）。音效先排在音訊時鐘上，
+    // 數字與抖動在「聲音實際播出」的時間點才更新，畫面與聲音同一拍。
+    const ROLL_BEATS = 50;
     function playRoll(vMin, vMax, winners, note, onDone) {
         const card = $('mainCard');
-        let count = 0;
-        let speed = 50;
+        const beats = [];
+        for (let c = 1, t = 0; c <= ROLL_BEATS; t += 50 + 20 * Math.max(0, c - 36), c++) beats.push(t);
 
-        function roll() {
-            count++;
-            showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin), '', 'rolling-num');
-            playTick(400 + count * 15, 'square', 0.05);
-
-            if (count > 25) card.style.animation = "shake 0.1s infinite";
-
-            if (count < 50) {
-                setTimeout(roll, speed);
-                if (count > 35) speed += 20;
-            } else {
-                card.style.animation = "none";
-                showWinners(winners, note);
-                playTick(150, 'sawtooth', 0.5);
-                fireConfetti();
-                onDone && onDone();
-            }
+        const audioOn = audioCtx && audioCtx.state === 'running';
+        const audioStart = audioOn ? audioCtx.currentTime + 0.08 : 0; // 預留排程時間
+        const perfStart = audioOn ? audioTimeToPerf(audioStart) : performance.now();
+        if (audioOn) {
+            beats.forEach((ms, i) => playTick(400 + (i + 1) * 15, 'square', 0.05, audioStart + ms / 1000));
+            playTick(150, 'sawtooth', 0.5, audioStart + beats[ROLL_BEATS - 1] / 1000);
         }
-        roll();
+
+        function beatShake(c) {
+            if (c <= 25 || !card.animate) return;
+            card.animate([
+                { transform: 'translate(-3px, 1px) rotate(-1deg)' },
+                { transform: 'translate(2px, -1px) rotate(1deg)', offset: 0.4 },
+                { transform: 'translate(0, 0) rotate(0deg)' },
+            ], { duration: Math.min(90, 50 + 20 * Math.max(0, c - 36)), easing: 'ease-out' });
+        }
+
+        let next = 0;
+        // 推進到現在該有的拍子；回傳是否已結束
+        function advance() {
+            if (next >= ROLL_BEATS) return true;
+            const now = performance.now();
+            while (next < ROLL_BEATS && now >= perfStart + beats[next]) {
+                const c = ++next;
+                if (c < ROLL_BEATS) {
+                    // 落後超過一拍（例如分頁在背景）就只補最後一拍，不連續閃動
+                    if (next < ROLL_BEATS - 1 && now >= perfStart + beats[next]) continue;
+                    showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin), '', 'rolling-num');
+                    beatShake(c);
+                } else {
+                    showWinners(winners, note);
+                    fireConfetti();
+                    onDone && onDone();
+                }
+            }
+            return next >= ROLL_BEATS;
+        }
+        function frame() { if (!advance()) requestAnimationFrame(frame); }
+        requestAnimationFrame(frame);
+        // 分頁在背景時 requestAnimationFrame 會暫停，用計時器保證結果仍會出現
+        setTimeout(advance, perfStart - performance.now() + beats[ROLL_BEATS - 1] + 250);
     }
 
     function setButton(disabled, text) {
