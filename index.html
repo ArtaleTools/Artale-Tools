@@ -516,9 +516,13 @@
 
         /* ---------- 背景裝飾（純裝飾，不攔截點擊；動畫只用 transform / opacity） ---------- */
         @keyframes wheelSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-        @keyframes ballFloat {
-            0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
-            50% { transform: translateY(-18px) rotate(calc(var(--rot, 0deg) + 6deg)); }
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(var(--dx, 12px), var(--dy, -24px)); }
+        }
+        @keyframes gemFloat {
+            0%, 100% { transform: translateY(0) rotate(var(--rot, 45deg)); }
+            50% { transform: translateY(-16px) rotate(calc(var(--rot, 45deg) + 25deg)); }
         }
         @keyframes twinkle {
             0%, 100% { opacity: 0.15; transform: scale(0.7); }
@@ -533,25 +537,24 @@
             opacity: 0.55;
             animation: wheelSpin 160s linear infinite;
         }
-        /* 號碼球：兩側緩慢漂浮 */
-        .bg-ball {
-            position: absolute; width: var(--size); height: var(--size);
-            left: var(--x); top: var(--y);
-            border-radius: 50%;
-            display: grid; place-content: center;
-            font: 900 calc(var(--size) * 0.38)/1 var(--font-num);
-            color: rgba(255, 255, 255, 0.55);
-            background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.35), rgba(255, 107, 129, 0.35) 18%, rgba(255, 71, 87, 0.22) 45%, rgba(163, 45, 56, 0.18) 75%, rgba(62, 31, 37, 0.1));
-            box-shadow: inset 0 -6px 14px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 71, 87, 0.12);
-            opacity: var(--o, 0.5);
-            animation: ballFloat var(--dur, 9s) ease-in-out var(--delay, 0s) infinite;
+        /* 柔焦光暈：景深模糊的光斑（以漸層做出柔邊，不用 filter） */
+        .bg-bokeh {
+            position: absolute; left: var(--x); top: var(--y);
+            width: var(--size); height: var(--size); border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 107, 129, 0.55) 0%, rgba(255, 71, 87, 0.25) 35%, rgba(255, 71, 87, 0) 70%);
+            opacity: var(--o, 0.35);
+            animation: drift var(--dur, 14s) ease-in-out var(--delay, 0s) infinite;
         }
-        .bg-ball::before {
-            content: ""; position: absolute; inset: 22%;
-            border-radius: 50%; background: rgba(15, 15, 18, 0.35);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        /* 細線菱形：帶一點高光的鏤空框 */
+        .bg-gem {
+            position: absolute; left: var(--x); top: var(--y);
+            width: var(--size); height: var(--size);
+            border: 1px solid rgba(255, 107, 129, 0.45);
+            box-shadow: 0 0 12px rgba(255, 71, 87, 0.25), inset 0 0 8px rgba(255, 71, 87, 0.15);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 55%);
+            opacity: var(--o, 0.6);
+            animation: gemFloat var(--dur, 12s) ease-in-out var(--delay, 0s) infinite;
         }
-        .bg-ball span { position: relative; }
         /* 星點 */
         .bg-spark {
             position: absolute; left: var(--x); top: var(--y);
@@ -560,8 +563,7 @@
             animation: twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite;
         }
         @media (max-width: 700px) {
-            .bg-ball { --size: 44px !important; opacity: calc(var(--o, 0.5) * 0.6); }
-            .bg-ball.wide-only { display: none; }
+            .bg-deco .wide-only { display: none; }
         }
 
         [hidden] { display: none !important; }
@@ -589,12 +591,18 @@
         <g stroke="#ff4757" stroke-opacity="0.07" stroke-width="2"><line x1="500" y1="140" x2="500" y2="300" transform="rotate(15 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(45 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(75 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(105 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(135 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(165 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(195 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(225 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(255 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(285 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(315 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(345 500 500)"/></g>
         <circle cx="500" cy="500" r="140" stroke="#ff4757" stroke-opacity="0.08" stroke-width="2"/>
     </svg>
-    <div class="bg-ball" style="--x:7%;--y:14%;--size:88px;--o:0.55;--dur:9s;--delay:0s;--rot:-12deg"><span>7</span></div>
-    <div class="bg-ball wide-only" style="--x:15%;--y:58%;--size:64px;--o:0.4;--dur:11s;--delay:-3s;--rot:8deg"><span>21</span></div>
-    <div class="bg-ball wide-only" style="--x:4%;--y:80%;--size:72px;--o:0.45;--dur:10s;--delay:-6s;--rot:14deg"><span>3</span></div>
-    <div class="bg-ball" style="--x:84%;--y:10%;--size:70px;--o:0.45;--dur:12s;--delay:-2s;--rot:10deg"><span>38</span></div>
-    <div class="bg-ball wide-only" style="--x:90%;--y:46%;--size:92px;--o:0.5;--dur:10s;--delay:-5s;--rot:-8deg"><span>15</span></div>
-    <div class="bg-ball wide-only" style="--x:78%;--y:78%;--size:60px;--o:0.4;--dur:9s;--delay:-1s;--rot:6deg"><span>27</span></div>
+    <i class="bg-bokeh" style="--x:6%;--y:10%;--size:220px;--o:0.3;--dur:16s;--delay:0s;--dx:20px;--dy:-30px"></i>
+    <i class="bg-bokeh wide-only" style="--x:14%;--y:62%;--size:120px;--o:0.35;--dur:13s;--delay:-4s;--dx:-14px;--dy:-22px"></i>
+    <i class="bg-bokeh wide-only" style="--x:-4%;--y:78%;--size:260px;--o:0.22;--dur:18s;--delay:-8s;--dx:24px;--dy:-18px"></i>
+    <i class="bg-bokeh" style="--x:80%;--y:6%;--size:180px;--o:0.28;--dur:15s;--delay:-2s;--dx:-18px;--dy:26px"></i>
+    <i class="bg-bokeh wide-only" style="--x:88%;--y:52%;--size:240px;--o:0.25;--dur:17s;--delay:-6s;--dx:-22px;--dy:-26px"></i>
+    <i class="bg-bokeh wide-only" style="--x:72%;--y:82%;--size:110px;--o:0.35;--dur:12s;--delay:-3s;--dx:16px;--dy:-20px"></i>
+    <i class="bg-gem" style="--x:11%;--y:30%;--size:22px;--o:0.7;--dur:11s;--delay:0s;--rot:45deg"></i>
+    <i class="bg-gem wide-only" style="--x:22%;--y:84%;--size:14px;--o:0.6;--dur:9s;--delay:-3s;--rot:30deg"></i>
+    <i class="bg-gem wide-only" style="--x:4%;--y:52%;--size:10px;--o:0.5;--dur:13s;--delay:-5s;--rot:60deg"></i>
+    <i class="bg-gem" style="--x:86%;--y:28%;--size:18px;--o:0.7;--dur:12s;--delay:-2s;--rot:20deg"></i>
+    <i class="bg-gem wide-only" style="--x:94%;--y:72%;--size:12px;--o:0.55;--dur:10s;--delay:-6s;--rot:50deg"></i>
+    <i class="bg-gem wide-only" style="--x:70%;--y:58%;--size:9px;--o:0.5;--dur:14s;--delay:-4s;--rot:35deg"></i>
     <i class="bg-spark" style="--x:12%;--y:30%;--dur:4s;--delay:0s"></i>
     <i class="bg-spark" style="--x:24%;--y:18%;--dur:5s;--delay:-1.5s"></i>
     <i class="bg-spark" style="--x:30%;--y:84%;--dur:3.5s;--delay:-2s"></i>
