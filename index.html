@@ -5,11 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artale 繁中槍手群抽獎輪盤</title>
     <style>
+        /* ================================================================
+           Design Tokens：色票全部取自原版（標「= 原」），只補同色相明暗階
+           ================================================================ */
         :root {
-            --primary: #ff4757;
-            --accent: #ffffff;
-            --bg: #0f0f12;
-            --card-bg: #1e1e26;
+            /* Primary：原版主紅 #ff4757 為基準 */
+            --primary: #ff4757;            /* = 原 --primary */
+            --primary-400: #ff6b81;        /* = 原按鈕漸層亮端 */
+            --primary-600: #e83d4c;        /* 新增：按鈕漸層暗端 */
+            --primary-700: #a32d38;        /* = 原按鈕立體底 */
+            --primary-900: #3e1f25;        /* = 原背景光暈 */
+            --primary-a10: rgba(255, 71, 87, 0.10); /* = 原 hover */
+            --primary-a15: rgba(255, 71, 87, 0.15); /* = 原分頁底 */
+            --primary-a30: rgba(255, 71, 87, 0.30); /* = 原卡片光暈 */
+            --primary-a50: rgba(255, 71, 87, 0.50); /* = 原標題光暈 */
+
+            /* Accent：原版白色流光 */
+            --accent: #ffffff;             /* = 原 --accent */
+
+            /* Background / Surface */
+            --bg: #0f0f12;                 /* = 原 --bg */
+            --card-bg: #1e1e26;            /* = 原 --card-bg */
+            --surface-card: rgba(30, 30, 38, 0.95); /* = 原卡片底 */
+            --surface-sunken: rgba(0, 0, 0, 0.3);   /* = 原面板底 */
+            --surface-field: #121217;      /* = 原輸入框底 */
+
+            /* Border */
+            --border: #444;                /* = 原 */
+            --border-strong: #555;         /* = 原 */
+            --border-subtle: #2a2a33;      /* = 原紀錄分隔線 */
+            --highlight: rgba(255, 255, 255, 0.06); /* 新增：表面上緣高光 */
+
+            /* Text */
+            --text: #ffffff;               /* = 原 */
+            --text-2: #dddddd;             /* = 原 */
+            --text-3: #aaaaaa;             /* = 原 */
+            --text-4: #888888;             /* = 原 */
+            --text-5: #666666;             /* = 原 */
+
+            /* Status（原版） */
+            --ok: #2ed573;
+            --warn: #ffa502;
+            --pill-bg: #333;
+
+            /* Interactive states */
+            --hover-tint: var(--primary-a10);
+            --active-tint: var(--primary-a15);
+            --disabled-bg: #444;           /* = 原停用按鈕 */
+            --focus-ring: 0 0 0 3px var(--primary-a30);
+
+            /* Typography（字體家族沿用原版） */
+            --font: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            --font-num: 'Courier New', monospace;
+            --fs-display: 60px;
+            --fs-title: 32px;
+            --fs-heading: 20px;
+            --fs-value: 18px;
+            --fs-body: 14px;
+            --fs-small: 13px;
+            --fs-label: 12px;
+
+            /* Spacing（4px 基準） */
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+
+            /* Radius */
+            --r-sm: 8px; --r-md: 12px; --r-lg: 15px; --r-xl: 24px; --r-pill: 999px;
+
+            /* Elevation */
+            --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+            --shadow-panel: inset 0 1px 0 var(--highlight), 0 1px 0 rgba(0, 0, 0, 0.35);
+            --shadow-card: 0 0 50px var(--primary-a30), 0 20px 50px rgba(0, 0, 0, 0.45);
+
+            /* Motion */
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --dur-fast: 0.15s;
+            --dur: 0.25s;
         }
 
         @keyframes cardEntrance {
@@ -27,27 +97,33 @@
             50% { transform: scale(1.05); opacity: 1; }
         }
 
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            25% { transform: translate(-2px, -1px) rotate(-1deg); }
-            50% { transform: translate(-3px, 1px) rotate(0deg); }
-            75% { transform: translate(2px, 2px) rotate(1deg); }
-            100% { transform: translate(-1px, -1px) rotate(0deg); }
+        @keyframes resultIn {
+            0% { opacity: 0; transform: translateY(8px) scale(0.92); }
+            60% { opacity: 1; transform: translateY(0) scale(1.04); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        body { 
-            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; 
-            background: var(--bg);
-            background-image: radial-gradient(circle at 50% -20%, #3e1f25, #0f0f12);
-            color: white; 
-            display: flex; 
-            justify-content: center; 
+        /* ---------- 版面 ---------- */
+        body {
+            font-family: var(--font);
+            background-color: var(--bg);
+            /* 原版頂部光暈 + 極淡底部回光 + 細點紋理（全為靜態） */
+            background-image:
+                radial-gradient(circle at 50% -20%, var(--primary-900), var(--bg) 75%),
+                radial-gradient(ellipse at 50% 120%, rgba(62, 31, 37, 0.45), transparent 60%),
+                radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+            background-size: auto, auto, 4px 4px;
+            background-attachment: fixed;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             overflow-x: hidden;
-            padding: 24px 0;
+            padding: var(--sp-6) 0;
             box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
         }
 
         #confetti-canvas {
@@ -61,110 +137,135 @@
         }
 
         .container {
+            position: relative;
             perspective: 1000px;
             width: 90%;
             max-width: 400px;
             z-index: 10;
-            animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+            animation: cardEntrance 0.8s var(--ease-out) both;
         }
 
-        .card { 
-            background: rgba(30, 30, 38, 0.95); 
-            padding: 40px 30px; 
-            border-radius: 24px; 
+        .card {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 120px),
+                var(--surface-card);
+            padding: 40px 30px;
+            border-radius: var(--r-xl);
             border: 2px solid var(--primary);
-            box-shadow: 0 0 50px rgba(255, 71, 87, 0.3);
+            box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             text-align: center;
-            backdrop-filter: blur(10px);
             position: relative;
         }
 
-        .lucky-text { 
-            background: linear-gradient(110deg, #ff4757 25%, #ffffff 45%, #ff4757 50%, #ffffff 55%, #ff4757 75%);
+        /* ---------- 標題 ---------- */
+        .lucky-text {
+            background: linear-gradient(110deg, var(--primary) 25%, var(--accent) 45%, var(--primary) 50%, var(--accent) 55%, var(--primary) 75%);
             background-size: 200% auto;
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 900; 
+            font-weight: 900;
             animation: shine 3s linear infinite;
-            filter: drop-shadow(0 0 5px rgba(255, 71, 87, 0.5));
+            filter: drop-shadow(0 0 5px var(--primary-a50));
             display: inline-block;
         }
 
-        .subtitle { 
-            font-size: 32px; 
-            margin: 5px 0 25px 0; 
-            letter-spacing: 3px; 
+        .subtitle {
+            font-size: var(--fs-title);
+            line-height: 1.25;
+            margin: 6px 0 var(--sp-6);
+            letter-spacing: 3px;
+            padding-left: 3px; /* 抵銷末字後的字距 */
         }
 
-        h2 { 
-            color: white; 
-            margin: 0; 
-            letter-spacing: 1px; 
-            font-size: 20px;
+        h2 {
+            color: var(--text);
+            margin: 0;
+            letter-spacing: 1px;
+            padding-left: 1px; /* 抵銷末字後的字距 */
+            font-size: var(--fs-heading);
+            font-weight: 700;
+            line-height: 1.3;
             opacity: 0.8;
         }
 
-        /* --- 增減控制組優化 --- */
+        /* ---------- 分頁 ---------- */
+        .mode-tabs { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+        .mode-tab {
+            flex: 1; padding: 9px 0; border-radius: 10px; border: 1px solid var(--border);
+            background: var(--surface-field); color: var(--text-3);
+            font: 700 var(--fs-body)/1.2 var(--font); cursor: pointer;
+            box-shadow: inset 0 1px 0 var(--highlight);
+            transition: border-color var(--dur), color var(--dur), background-color var(--dur);
+        }
+        .mode-tab:hover { color: var(--text); border-color: var(--border-strong); }
+        .mode-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+        .mode-tab.active { border-color: var(--primary); color: var(--text); background: var(--primary-a15); }
+
+        /* ---------- 控制面板 ---------- */
         .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 15px;
+            gap: var(--sp-4) 15px;
+            margin-bottom: var(--sp-4);
+            background: var(--surface-sunken);
+            padding: var(--sp-4) 15px;
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-panel);
+        }
+        .input-grid .group[style] { margin-top: 0 !important; } /* 間距統一由 grid gap 控制 */
+
+        label {
+            display: block; font-size: var(--fs-label); font-weight: 700; line-height: 1.4;
+            color: var(--text-4); letter-spacing: 0.5px; margin-bottom: 6px; text-align: left;
         }
 
         .input-control {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #121217;
-            border-radius: 12px;
-            border: 1px solid #444;
+            background: var(--surface-field);
+            border-radius: var(--r-md);
+            border: 1px solid var(--border);
             padding: 2px;
-            transition: border-color 0.3s;
+            box-shadow: var(--shadow-inset);
+            transition: border-color var(--dur), box-shadow var(--dur);
         }
-
-        .input-control:focus-within {
-            border-color: var(--primary);
-        }
+        .input-control:hover { border-color: var(--border-strong); }
+        .input-control:focus-within { border-color: var(--primary); box-shadow: var(--shadow-inset), var(--focus-ring); }
 
         .stepper-btn {
             background: transparent;
             border: none;
             color: var(--primary);
-            font-size: 20px;
-            font-weight: bold;
-            width: 35px;
-            height: 35px;
+            font: 700 20px/1 var(--font);
+            width: 36px;
+            height: 36px;
+            flex: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             user-select: none;
-            border-radius: 8px;
-            transition: background 0.2s;
+            border-radius: var(--r-sm);
+            transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
         }
+        .input-control .stepper-btn:last-child { padding-bottom: 4px; } /* 「+」字形偏低，上移 2px */
+        .stepper-btn:hover { background: var(--hover-tint); color: var(--primary-400); }
+        .stepper-btn:active { background: var(--active-tint); transform: scale(0.9); }
+        .stepper-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-        .stepper-btn:hover {
-            background: rgba(255, 71, 87, 0.1);
-        }
-
-        .stepper-btn:active {
-            transform: scale(0.9);
-        }
-
-        input { 
-            width: 40px; 
+        input {
+            width: 40px;
+            min-width: 0;
             flex-grow: 1;
-            padding: 8px 0; 
+            padding: 8px 0;
             border: none;
-            background: transparent; 
-            color: #ffffff; 
-            font-weight: bold; 
-            font-size: 18px; 
-            text-align: center; 
+            background: transparent;
+            color: var(--text);
+            font: 700 var(--fs-value)/1.2 var(--font);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
             outline: none;
         }
 
@@ -176,105 +277,382 @@
         }
         input[type=number] { -moz-appearance: textfield; }
 
-        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; text-align: left; }
+        /* ---------- 排除已中獎 ---------- */
+        .exclude-row {
+            /* 第一行：勾選框＋已中獎數；第二行：重置 */
+            display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 0 14px;
+            margin: 0 0 var(--sp-5); padding: var(--sp-3) 15px; font-size: var(--fs-body); font-weight: 700;
+            background: var(--surface-sunken); border-radius: var(--r-lg);
+            box-shadow: var(--shadow-panel);
+        }
+        .exclude-row label {
+            display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0;
+            font-size: var(--fs-body); letter-spacing: 0; text-align: center; cursor: pointer; color: var(--text); user-select: none;
+        }
+        .exclude-row input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            flex: none; width: 22px; height: 22px; margin: 0; padding: 0;
+            background: var(--surface-field); border: 1px solid var(--border); border-radius: var(--r-sm);
+            box-shadow: var(--shadow-inset);
+            display: grid; place-content: center; cursor: pointer;
+            transition: border-color var(--dur), background-color var(--dur-fast), box-shadow var(--dur);
+        }
+        .exclude-row input[type="checkbox"]::after {
+            content: ""; width: 10px; height: 6px; margin-top: -2px;
+            border-left: 3px solid var(--text); border-bottom: 3px solid var(--text);
+            transform: rotate(-45deg) scale(0); transition: transform var(--dur-fast) var(--ease-out);
+        }
+        .exclude-row input[type="checkbox"]:checked {
+            background: linear-gradient(180deg, var(--primary-400), var(--primary));
+            border-color: var(--primary); box-shadow: 0 2px 8px var(--primary-a30);
+        }
+        .exclude-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+        .exclude-row input[type="checkbox"]:hover { border-color: var(--primary); }
+        .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; box-shadow: var(--focus-ring); }
+        .exclude-row .meta:empty { display: none; }
+        .exclude-row .meta { color: var(--text-3); font-size: var(--fs-body); line-height: 1; font-variant-numeric: tabular-nums; }
+        .exclude-row::after { content: ""; flex-basis: 100%; order: 1; } /* 換行點 */
+        .exclude-row .small-btn { font-size: var(--fs-body); font-weight: 700; order: 2; margin-top: 10px; }
 
-        /* --- 顯示與按鈕 --- */
-        #display { 
-            font-size: 60px; 
-            color: #ffffff; 
-            margin: 25px 0; 
-            font-family: 'Courier New', monospace; 
+        /* ---------- 抽獎顯示窗（全站視覺核心） ---------- */
+        #display {
+            position: relative;
+            font-size: var(--fs-display);
+            color: var(--text);
+            margin: var(--sp-5) 0 var(--sp-6);
+            padding: var(--sp-3);
+            font-family: var(--font-num);
             font-weight: 900;
-            min-height: 140px;
+            font-variant-numeric: tabular-nums;
+            min-height: 180px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             line-height: 1.3;
+            overflow-wrap: anywhere;
+            border-radius: 18px;
+            /* 內凹視窗：深底 + 底部主色微光，框住號碼 */
+            background:
+                radial-gradient(ellipse at 50% 120%, var(--primary-a15), transparent 65%),
+                linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.25));
+            border: 1px solid var(--border-subtle);
+            box-shadow:
+                inset 0 2px 8px rgba(0, 0, 0, 0.6),
+                inset 0 -1px 0 var(--highlight);
+            transition: border-color var(--dur);
         }
+        /* 視窗兩側的指針 */
+        #display::before,
+        #display::after {
+            content: "";
+            position: absolute;
+            top: var(--pointer-y, 50%);
+            width: 0;
+            height: 0;
+            margin-top: -7px;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            opacity: 0.85;
+            transition: opacity var(--dur);
+        }
+        #display::before { left: 0; border-left: 9px solid var(--primary); }
+        #display::after { right: 0; border-right: 9px solid var(--primary); }
+        #display:has(.ready-text)::before,
+        #display:has(.ready-text)::after { opacity: 0.35; }
+
+        /* 狀態：轉動中 */
+        #display:has(.rolling-num) {
+            border-color: var(--primary-a50);
+            box-shadow:
+                inset 0 2px 8px rgba(0, 0, 0, 0.6),
+                inset 0 0 24px var(--primary-a15);
+        }
+        /* 狀態：結果 */
+        #display:has(.win-text) { border-color: var(--primary-a50); }
 
         .ready-text {
             animation: readyBeat 1.5s infinite ease-in-out;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            padding-left: 2px; /* 抵銷末字後的字距 */
         }
 
+        /* 裁掉字型上下留白，數字的排版中心才會等於字形中心，與指針對齊 */
+        .ready-text,
+        .rolling-num,
+        .win-numbers {
+            text-box: trim-both cap alphabetic;
+        }
+        /* Courier 數字比大寫字高略高約 0.02em，往下補齊 */
+        .rolling-num, .win-numbers { position: relative; top: 0.02em; }
+
+        .rolling-num {
+            font-size: var(--fs-roll);
+            line-height: 1.2;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        /* --fs-roll：跳號字級；--roll-end：跳號最後一拍放大倍率（結果號碼與它同大） */
+        #display { --fs-win: 36px; --fs-roll: 70px; --roll-end: 1.4; container-type: inline-size; }
+        /* 結果狀態上下各留「恭喜中獎！」的高度，標題在窗內、號碼仍在正中央 */
+        #display:has(.win-text) { padding-block: calc(var(--sp-3) + var(--fs-win) * 1.1 + var(--sp-2)); }
+        /* 線上房間結果多一行排序說明（12px × 1.3 + 6px），號碼往上移一半，指針跟著移 */
+        #display:has(.sort-note) { --pointer-y: calc(50% - (var(--fs-label) * 1.3 + 6px) / 2); }
+
+        @keyframes winTitleFade {
+            0% { opacity: 0; transform: translateY(6px) scale(0.92); }
+            10% { opacity: 1; transform: translateY(0) scale(1); }
+            40% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-14px); }
+        }
+        /* 號碼區塊：結果只有號碼佔版面，置中對準指針 */
+        .win-block { position: relative; }
+
+        /* 「恭喜中獎！」浮在號碼正上方，不佔版面，2 秒內上飄淡出 */
         .win-text {
-            font-size: 36px;
-            color: #ffffff;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + var(--sp-2));
+            translate: -50% 0;
+            white-space: nowrap;
+            pointer-events: none;
+            font-family: var(--font);
+            font-size: var(--fs-win);
+            line-height: 1.1;
+            padding-left: 0.18em; /* 🎉 字形偏右，左側補白讓整行視覺置中 */
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.6);
+            animation: winTitleFade 2s var(--ease-out) forwards;
+        }
+        /* 結果號碼：與跳號同樣的白字發光，大小等於跳號最後一拍 */
+        .win-numbers {
+            /* --cols：每行最多幾個號碼（由程式依數量設定）。以兩位數 1.2em、間距 0.6em 估算，
+               一行寬 = 1.8 × cols − 0.6 em；字級取「跳號最後一拍大小」與「一行塞得下」的較小值 */
+            --cols: 1;
+            font-size: min(calc(var(--fs-roll) * var(--roll-end)), 100cqi / (1.8 * var(--cols) - 0.5));
+            line-height: 1.2;
+            color: var(--text);
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35em;
+            animation: resultIn 0.5s var(--ease-out) both;
         }
 
-        .draw-btn { 
-            width: 100%; 
-            padding: 18px; 
-            background: linear-gradient(45deg, #ff4757, #ff6b81);
-            border: none; 
-            color: white; 
-            font-size: 22px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            border-radius: 15px; 
-            box-shadow: 0 6px 0 #a32d38;
-            transition: all 0.2s;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-        }
+        .win-row { display: flex; justify-content: center; gap: 0.6em; }
 
+        /* 每個號碼裁到數字字高，才能和指針精準對齊 */
+        .win-num { white-space: nowrap; text-box: trim-both cap alphabetic; }
+        /* 文字內容裡的「、」不顯示（複製時仍有）；畫面上的「、」只畫在同一行的號碼之間，行尾不會出現 */
+        .win-sep { display: none; }
+        .win-row > .win-num + .win-num { position: relative; }
+        /* 自製「、」：與數字同粗細、同顏色與光暈的短斜筆畫，置於號碼間距正中並貼齊底線 */
+        .win-row > .win-num + .win-num::before {
+            content: "";
+            position: absolute;
+            right: calc(100% + 0.3em - 0.05em); /* 間距 0.6em 的正中（扣掉筆畫半寬） */
+            bottom: 0.01em;
+            width: 0.1em;   /* 約等於 Courier 粗體數字的筆畫寬 */
+            height: 0.24em;
+            border-radius: 0.05em 0.05em 0.06em 0.06em;
+            background: var(--text);
+            box-shadow: 0 0 0.15em rgba(255, 255, 255, 0.45);
+            transform: rotate(-42deg);
+            transform-origin: 50% 100%;
+        }
+        .sort-note { font-family: var(--font); font-size: var(--fs-label); line-height: 1.3; font-weight: 400; color: var(--text-4); margin-top: 6px; }
+
+        /* ---------- 主按鈕 ---------- */
+        .draw-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(180deg, var(--primary-400), var(--primary) 55%, var(--primary-600));
+            border: none;
+            color: var(--text);
+            font: 700 22px/1.2 var(--font);
+            letter-spacing: 2px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+            border-radius: var(--r-lg);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                0 6px 0 var(--primary-700),
+                0 12px 20px rgba(0, 0, 0, 0.35);
+            transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast);
+            margin-bottom: var(--sp-5);
+            -webkit-tap-highlight-color: transparent;
+        }
         .draw-btn:hover:not(:disabled) {
-            filter: brightness(1.1);
+            filter: brightness(1.08);
             transform: translateY(-2px);
-            box-shadow: 0 8px 0 #a32d38;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                0 8px 0 var(--primary-700),
+                0 16px 24px rgba(0, 0, 0, 0.35);
+        }
+        .draw-btn:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 2px 0 var(--primary-700),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .draw-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+        /* 停用即轉動中（Loading） */
+        .draw-btn:disabled {
+            background: var(--disabled-bg);
+            color: var(--text-2);
+            text-shadow: none;
+            box-shadow: inset 0 1px 0 var(--highlight), 0 6px 0 #2e2e36;
+            cursor: not-allowed;
         }
 
-        .draw-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #a32d38; }
-        .draw-btn:disabled { background: #444; box-shadow: none; opacity: 0.8; cursor: not-allowed; }
+        /* ---------- 次要按鈕與標籤 ---------- */
+        .small-btn {
+            background: transparent; border: 1px solid var(--border-strong); color: var(--text-2); border-radius: var(--r-sm);
+            padding: 6px 10px; font: 400 var(--fs-small)/1.3 var(--font); cursor: pointer; white-space: nowrap;
+            transition: border-color var(--dur), color var(--dur), background-color var(--dur);
+        }
+        .small-btn:hover { border-color: var(--primary); color: var(--text); background: var(--hover-tint); }
+        .small-btn:active { background: var(--active-tint); }
+        .small-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+        .small-btn.primary { background: var(--primary); border-color: var(--primary); color: var(--text); font-weight: 700; }
+        .small-btn.primary:hover { background: var(--primary-400); border-color: var(--primary-400); }
+
+        .pill { font-size: var(--fs-label); padding: 2px 10px; border-radius: var(--r-pill); background: var(--pill-bg); color: #ccc; white-space: nowrap; }
+        .pill.ok { background: rgba(46, 213, 115, 0.2); color: var(--ok); }
+        .pill.warn { background: rgba(255, 165, 2, 0.2); color: var(--warn); }
+        .pill.bad { background: rgba(255, 71, 87, 0.2); color: var(--primary-400); }
+
+        /* ---------- 線上房間 ---------- */
+        .online-panel {
+            background: var(--surface-sunken); border-radius: var(--r-lg); padding: var(--sp-3) 15px;
+            margin-bottom: var(--sp-4); text-align: left; font-size: var(--fs-small); line-height: 1.5; color: #bbb;
+            box-shadow: var(--shadow-panel);
+        }
+        .online-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin: var(--sp-1) 0; flex-wrap: wrap; }
+        .room-code { font-family: var(--font-num); color: var(--text); word-break: break-all; }
+        #turnstile-box { margin-top: 10px; display: flex; justify-content: center; }
+
+        /* ---------- 其他 ---------- */
+        .notice { min-height: 18px; font-size: var(--fs-small); color: var(--warn); margin: -10px 0 var(--sp-3); }
+        .history { margin-top: var(--sp-3); text-align: left; font-size: var(--fs-small); }
+        .history summary { cursor: pointer; color: #999; }
+        .history ol { list-style: none; padding: 0; margin: var(--sp-2) 0 0; max-height: 180px; overflow-y: auto; }
+        .history li { padding: 6px 0; border-top: 1px solid var(--border-subtle); color: #ccc; }
+        .history .meta { color: #777; font-size: var(--fs-label); }
+        .input-grid.locked { opacity: 0.5; pointer-events: none; }
 
         .footer-note {
-            font-size: 12px;
-            color: #666;
+            font-size: var(--fs-label);
+            color: var(--text-5);
             margin-top: 10px;
             opacity: 0.6;
         }
 
-        /* --- 線上房間 --- */
-        .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-        .mode-tab {
-            flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid #444;
-            background: #121217; color: #aaa; font-size: 14px; font-weight: bold; cursor: pointer;
+
+        /* ---------- 背景裝飾（純裝飾，不攔截點擊；動畫只用 transform / opacity） ---------- */
+        @keyframes wheelSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(var(--dx, 12px), var(--dy, -24px)); }
         }
-        .mode-tab.active { border-color: var(--primary); color: #fff; background: rgba(255, 71, 87, 0.15); }
-        .online-panel {
-            background: rgba(0,0,0,0.3); border-radius: 15px; padding: 12px 15px;
-            margin-bottom: 16px; text-align: left; font-size: 13px; color: #bbb;
+        @keyframes gemFloat {
+            0%, 100% { transform: translateY(0) rotate(var(--rot, 45deg)); }
+            50% { transform: translateY(-16px) rotate(calc(var(--rot, 45deg) + 25deg)); }
         }
-        .online-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
-        .room-code { font-family: 'Courier New', monospace; color: #fff; word-break: break-all; }
-        .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #333; color: #ccc; white-space: nowrap; }
-        .pill.ok { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
-        .pill.warn { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
-        .pill.bad { background: rgba(255, 71, 87, 0.2); color: #ff6b81; }
-        .small-btn {
-            background: transparent; border: 1px solid #555; color: #ddd; border-radius: 8px;
-            padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(0.7); }
+            50% { opacity: 0.9; transform: scale(1); }
         }
-        .small-btn:hover { border-color: var(--primary); color: #fff; }
-        .small-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
-        .exclude-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; font-size: 14px; }
-        .exclude-row label { cursor: pointer; }
-        .notice { min-height: 18px; font-size: 13px; color: #ffa502; margin: -10px 0 12px; }
-        .history { margin-top: 12px; text-align: left; font-size: 13px; }
-        .history summary { cursor: pointer; color: #999; }
-        .history ol { list-style: none; padding: 0; margin: 8px 0 0; max-height: 180px; overflow-y: auto; }
-        .history li { padding: 6px 0; border-top: 1px solid #2a2a33; color: #ccc; }
-        .history .meta { color: #777; font-size: 12px; }
-        .sort-note { font-size: 12px; color: #888; margin-top: 6px; }
-        .input-grid.locked { opacity: 0.5; pointer-events: none; }
-        #turnstile-box { margin-top: 10px; display: flex; justify-content: center; }
+        .bg-deco { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+        /* 輪盤：呼應「幸運抽獎輪盤」，置於卡片正後方緩慢旋轉 */
+        .bg-wheel {
+            position: absolute; left: 50%; top: 50%;
+            width: min(150vmin, 1200px); height: min(150vmin, 1200px);
+            transform: translate(-50%, -50%);
+            opacity: 0.55;
+            animation: wheelSpin 160s linear infinite;
+        }
+        /* 柔焦光暈：景深模糊的光斑（以漸層做出柔邊，不用 filter） */
+        .bg-bokeh {
+            position: absolute; left: var(--x); top: var(--y);
+            width: var(--size); height: var(--size); border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 107, 129, 0.55) 0%, rgba(255, 71, 87, 0.25) 35%, rgba(255, 71, 87, 0) 70%);
+            opacity: var(--o, 0.35);
+            animation: drift var(--dur, 14s) ease-in-out var(--delay, 0s) infinite;
+        }
+        /* 細線菱形：帶一點高光的鏤空框 */
+        .bg-gem {
+            position: absolute; left: var(--x); top: var(--y);
+            width: var(--size); height: var(--size);
+            border: 1px solid rgba(255, 107, 129, 0.45);
+            box-shadow: 0 0 12px rgba(255, 71, 87, 0.25), inset 0 0 8px rgba(255, 71, 87, 0.15);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 55%);
+            opacity: var(--o, 0.6);
+            animation: gemFloat var(--dur, 12s) ease-in-out var(--delay, 0s) infinite;
+        }
+        /* 星點 */
+        .bg-spark {
+            position: absolute; left: var(--x); top: var(--y);
+            width: 3px; height: 3px; border-radius: 50%;
+            background: #fff; box-shadow: 0 0 6px 1px rgba(255, 107, 129, 0.6);
+            animation: twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite;
+        }
+        @media (max-width: 700px) {
+            .bg-deco .wide-only { display: none; }
+        }
+
         [hidden] { display: none !important; }
+
+        /* ---------- 響應式 ---------- */
+        @media (max-width: 380px) {
+            .card { padding: 32px 18px; }
+            .subtitle { font-size: 28px; letter-spacing: 2px; padding-left: 2px; }
+            .input-grid { gap: var(--sp-3) 10px; padding: var(--sp-3); }
+            .stepper-btn { width: 32px; }
+            #display { --fs-display: 48px; }
+            #display { --fs-win: 30px; --fs-roll: 56px; }
+        }
     </style>
 </head>
 <body>
+
+<div class="bg-deco" aria-hidden="true">
+    <svg class="bg-wheel" viewBox="0 0 1000 1000" fill="none">
+        <circle cx="500" cy="500" r="470" stroke="#ff4757" stroke-opacity="0.16" stroke-width="2"/>
+        <circle cx="500" cy="500" r="430" stroke="#ff4757" stroke-opacity="0.08" stroke-width="18"/>
+        <g stroke="#ff6b81" stroke-opacity="0.22" stroke-width="3" stroke-linecap="round"><line x1="500" y1="40" x2="500" y2="78" transform="rotate(0 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(10 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(20 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(30 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(40 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(50 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(60 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(70 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(80 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(90 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(100 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(110 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(120 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(130 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(140 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(150 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(160 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(170 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(180 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(190 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(200 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(210 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(220 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(230 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(240 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(250 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(260 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(270 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(280 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(290 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(300 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(310 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(320 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(330 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(340 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(350 500 500)"/></g>
+        <circle cx="500" cy="500" r="360" stroke="#ffffff" stroke-opacity="0.05" stroke-width="2" stroke-dasharray="4 14"/>
+        <g stroke="#ff4757" stroke-opacity="0.07" stroke-width="2"><line x1="500" y1="140" x2="500" y2="300" transform="rotate(15 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(45 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(75 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(105 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(135 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(165 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(195 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(225 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(255 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(285 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(315 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(345 500 500)"/></g>
+        <circle cx="500" cy="500" r="140" stroke="#ff4757" stroke-opacity="0.08" stroke-width="2"/>
+    </svg>
+    <i class="bg-bokeh" style="--x:6%;--y:10%;--size:220px;--o:0.3;--dur:16s;--delay:0s;--dx:20px;--dy:-30px"></i>
+    <i class="bg-bokeh wide-only" style="--x:14%;--y:62%;--size:120px;--o:0.35;--dur:13s;--delay:-4s;--dx:-14px;--dy:-22px"></i>
+    <i class="bg-bokeh wide-only" style="--x:-4%;--y:78%;--size:260px;--o:0.22;--dur:18s;--delay:-8s;--dx:24px;--dy:-18px"></i>
+    <i class="bg-bokeh" style="--x:80%;--y:6%;--size:180px;--o:0.28;--dur:15s;--delay:-2s;--dx:-18px;--dy:26px"></i>
+    <i class="bg-bokeh wide-only" style="--x:88%;--y:52%;--size:240px;--o:0.25;--dur:17s;--delay:-6s;--dx:-22px;--dy:-26px"></i>
+    <i class="bg-bokeh wide-only" style="--x:72%;--y:82%;--size:110px;--o:0.35;--dur:12s;--delay:-3s;--dx:16px;--dy:-20px"></i>
+    <i class="bg-gem" style="--x:11%;--y:30%;--size:22px;--o:0.7;--dur:11s;--delay:0s;--rot:45deg"></i>
+    <i class="bg-gem wide-only" style="--x:22%;--y:84%;--size:14px;--o:0.6;--dur:9s;--delay:-3s;--rot:30deg"></i>
+    <i class="bg-gem wide-only" style="--x:4%;--y:52%;--size:10px;--o:0.5;--dur:13s;--delay:-5s;--rot:60deg"></i>
+    <i class="bg-gem" style="--x:86%;--y:28%;--size:18px;--o:0.7;--dur:12s;--delay:-2s;--rot:20deg"></i>
+    <i class="bg-gem wide-only" style="--x:94%;--y:72%;--size:12px;--o:0.55;--dur:10s;--delay:-6s;--rot:50deg"></i>
+    <i class="bg-gem wide-only" style="--x:70%;--y:58%;--size:9px;--o:0.5;--dur:14s;--delay:-4s;--rot:35deg"></i>
+    <i class="bg-spark" style="--x:12%;--y:30%;--dur:4s;--delay:0s"></i>
+    <i class="bg-spark" style="--x:24%;--y:18%;--dur:5s;--delay:-1.5s"></i>
+    <i class="bg-spark" style="--x:30%;--y:84%;--dur:3.5s;--delay:-2s"></i>
+    <i class="bg-spark" style="--x:9%;--y:46%;--dur:4.5s;--delay:-3s"></i>
+    <i class="bg-spark" style="--x:70%;--y:24%;--dur:4s;--delay:-0.5s"></i>
+    <i class="bg-spark" style="--x:88%;--y:28%;--dur:5s;--delay:-2.5s"></i>
+    <i class="bg-spark" style="--x:74%;--y:62%;--dur:3.8s;--delay:-1s"></i>
+    <i class="bg-spark" style="--x:93%;--y:88%;--dur:4.2s;--delay:-3.2s"></i>
+    <i class="bg-spark" style="--x:20%;--y:92%;--dur:4.6s;--delay:-1.8s"></i>
+    <i class="bg-spark" style="--x:62%;--y:8%;--dur:3.6s;--delay:-2.8s"></i>
+</div>
 
 <canvas id="confetti-canvas"></canvas>
 
@@ -319,31 +697,31 @@
             <div class="group">
                 <label>範圍(小)</label>
                 <div class="input-control">
-                    <button class="stepper-btn" onclick="step('min', -1)">-</button>
+                    <button class="stepper-btn" onclick="step('min', -1)" aria-label="減少">−</button>
                     <input type="number" id="min" value="1">
-                    <button class="stepper-btn" onclick="step('min', 1)">+</button>
+                    <button class="stepper-btn" onclick="step('min', 1)" aria-label="增加">+</button>
                 </div>
             </div>
             <div class="group">
                 <label>範圍(大)</label>
                 <div class="input-control">
-                    <button class="stepper-btn" onclick="step('max', -1)">-</button>
+                    <button class="stepper-btn" onclick="step('max', -1)" aria-label="減少">−</button>
                     <input type="number" id="max" value="50">
-                    <button class="stepper-btn" onclick="step('max', 1)">+</button>
+                    <button class="stepper-btn" onclick="step('max', 1)" aria-label="增加">+</button>
                 </div>
             </div>
             <div class="group" style="grid-column: span 2; margin-top: 10px;">
                 <label>抽取數量</label>
                 <div class="input-control">
-                    <button class="stepper-btn" onclick="step('qty', -1)">-</button>
+                    <button class="stepper-btn" onclick="step('qty', -1)" aria-label="減少">−</button>
                     <input type="number" id="qty" value="1">
-                    <button class="stepper-btn" onclick="step('qty', 1)">+</button>
+                    <button class="stepper-btn" onclick="step('qty', 1)" aria-label="增加">+</button>
                 </div>
             </div>
         </div>
         
         <div class="exclude-row" id="excludeRow">
-            <label><input type="checkbox" id="excludeWon"> 已中獎的不再中</label>
+            <label><input type="checkbox" id="excludeWon"> 取消已中獎過的號碼</label>
             <span id="excludeInfo" class="meta"></span>
             <button class="small-btn" id="excludeResetBtn" type="button" hidden>重置</button>
         </div>
@@ -359,7 +737,7 @@
             <ol id="historyList"></ol>
         </details>
         
-        <div class="footer-note">製作:OOKouun</div>
+        <div class="footer-note">製作:OOKouun<span id="lastUpdated"></span></div>
     </div>
 </div>
 
@@ -440,18 +818,28 @@
     }
     for (const ev of ['pointerdown', 'keydown', 'touchstart']) document.addEventListener(ev, unlockAudio, true);
 
-    function playTick(freq, type, duration) {
+    // at：音訊時鐘上的播放時間（秒），省略則立即播放
+    function playTick(freq, type, duration, at) {
         if (!audioCtx || audioCtx.state !== 'running') return;
+        const t = at ?? audioCtx.currentTime;
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+        osc.start(t);
+        osc.stop(t + duration);
+    }
+
+    // 音訊時鐘時間 → 聲音實際從喇叭出來的 performance.now() 時間（含輸出延遲）
+    function audioTimeToPerf(t) {
+        const ts = audioCtx.getOutputTimestamp ? audioCtx.getOutputTimestamp() : null;
+        if (ts && ts.performanceTime > 0) return ts.performanceTime + (t - ts.contextTime) * 1000;
+        const latency = (audioCtx.outputLatency || 0) + (audioCtx.baseLatency || 0);
+        return performance.now() + (t - audioCtx.currentTime + latency) * 1000;
     }
 
     function showNumber(text, style, className) {
@@ -465,11 +853,35 @@
     function showWinners(winners, note) {
         const title = document.createElement('div');
         title.className = 'win-text';
-        title.textContent = '恭喜中獎！';
+        title.textContent = '恭喜中獎🎉';
         const nums = document.createElement('div');
-        nums.className = 'win-numbers lucky-text';
-        nums.textContent = winners.join('、');
-        const children = [title, nums];
+        nums.className = 'win-numbers';
+        // 每行數量：讓各行盡量平均（4 → 2+2、5 → 3+2、9 → 3+3+3），每行各自置中
+        const n = winners.length;
+        const cols = n <= 3 ? n : n === 4 ? 2 : n <= 6 ? 3 : n <= 8 ? 4 : n === 9 ? 3 : n <= 12 ? 4 : 5;
+        nums.style.setProperty('--cols', cols);
+        let row;
+        winners.forEach((w, i) => {
+            if (i % cols === 0) {
+                row = document.createElement('div');
+                row.className = 'win-row';
+                nums.append(row);
+            }
+            const item = document.createElement('span');
+            item.className = 'win-num';
+            item.textContent = w;
+            if (i < winners.length - 1) {
+                const sep = document.createElement('span');
+                sep.className = 'win-sep';
+                sep.textContent = '、';
+                item.append(sep);
+            }
+            row.append(item);
+        });
+        const block = document.createElement('div');
+        block.className = 'win-block';
+        block.append(nums, title);
+        const children = [block];
         if (note) {
             const n = document.createElement('div');
             n.className = 'sort-note';
@@ -480,31 +892,78 @@
     }
 
     // 原本的跳號動畫：50 次跳號、25 次後震動、結束時彩帶與音效。winners 已由呼叫端決定。
+    // 節奏與原版相同（每 50ms 一拍，第 36 拍起每拍再慢 20ms）。音效先排在音訊時鐘上，
+    // 數字與抖動在「聲音實際播出」的時間點才更新，畫面與聲音同一拍。
+    const ROLL_BEATS = 50;
     function playRoll(vMin, vMax, winners, note, onDone) {
         const card = $('mainCard');
-        let count = 0;
-        let speed = 50;
+        const beats = [];
+        for (let c = 1, t = 0; c <= ROLL_BEATS; t += 50 + 20 * Math.max(0, c - 36), c++) beats.push(t);
 
-        function roll() {
-            count++;
-            showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin),
-                'font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);');
-            playTick(400 + count * 15, 'square', 0.05);
-
-            if (count > 25) card.style.animation = "shake 0.1s infinite";
-
-            if (count < 50) {
-                setTimeout(roll, speed);
-                if (count > 35) speed += 20;
-            } else {
-                card.style.animation = "none";
-                showWinners(winners, note);
-                playTick(150, 'sawtooth', 0.5);
-                fireConfetti();
-                onDone && onDone();
-            }
+        const audioOn = audioCtx && audioCtx.state === 'running';
+        const audioStart = audioOn ? audioCtx.currentTime + 0.08 : 0; // 預留排程時間
+        const perfStart = audioOn ? audioTimeToPerf(audioStart) : performance.now();
+        if (audioOn) {
+            beats.forEach((ms, i) => playTick(400 + (i + 1) * 15, 'square', 0.05, audioStart + ms / 1000));
+            playTick(150, 'sawtooth', 0.5, audioStart + beats[ROLL_BEATS - 1] / 1000);
         }
-        roll();
+
+        // 鏡頭震動：每拍往隨機方向衝一下，再像彈簧一樣衰減回彈，持續整拍（拍與拍之間連續）。
+        // 強度 k 從 0 隨進度遞增；數字同拍放大彈出。
+        function shakeCard(k, duration) {
+            if (!card.animate) return;
+            const a = 0.5 + 9.5 * k, r = 2.2 * k;
+            const th = Math.random() * Math.PI * 2, x = Math.cos(th) * a, y = Math.sin(th) * a;
+            const rs = Math.random() < 0.5 ? -r : r;
+            card.animate([1, -0.6, 0.35, -0.15, 0].map((f, i) => ({
+                transform: `translate(${(x * f).toFixed(2)}px, ${(y * f).toFixed(2)}px) rotate(${(rs * f).toFixed(3)}deg)`,
+                offset: i / 4,
+            })), { duration, easing: 'linear' });
+        }
+        // 數字彈跳：本身尺寸隨進度放大（1 → 1.4 倍），每拍再彈出一下，越後面彈得越高、回彈越多次
+        function popNumber(k, duration) {
+            const el = $('display').firstElementChild;
+            if (!el || !el.animate) return;
+            const base = 1 + 0.4 * k, peak = base + 0.05 + 0.45 * k * k;
+            el.animate([
+                { transform: `scale(${peak})` },
+                { transform: `scale(${base - (peak - base) * 0.35})`, offset: 0.45 },
+                { transform: `scale(${base + (peak - base) * 0.12})`, offset: 0.75 },
+                { transform: `scale(${base})` },
+            ], { duration, easing: 'ease-out', fill: 'forwards' });
+        }
+        function beatShake(c) {
+            const k = (c / (ROLL_BEATS - 1)) ** 2;
+            const duration = Math.max(50, beats[c] - beats[c - 1]);
+            shakeCard(k, duration);
+            popNumber(k, Math.max(110, duration));
+        }
+
+        let next = 0;
+        // 推進到現在該有的拍子；回傳是否已結束
+        function advance() {
+            if (next >= ROLL_BEATS) return true;
+            const now = performance.now();
+            while (next < ROLL_BEATS && now >= perfStart + beats[next]) {
+                const c = ++next;
+                if (c < ROLL_BEATS) {
+                    // 落後超過一拍（例如分頁在背景）就只補最後一拍，不連續閃動
+                    if (next < ROLL_BEATS - 1 && now >= perfStart + beats[next]) continue;
+                    showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin), '', 'rolling-num');
+                    beatShake(c);
+                } else {
+                    showWinners(winners, note);
+                    shakeCard(1.3, 420); // 結果出現時的最後一震
+                    fireConfetti();
+                    onDone && onDone();
+                }
+            }
+            return next >= ROLL_BEATS;
+        }
+        function frame() { if (!advance()) requestAnimationFrame(frame); }
+        requestAnimationFrame(frame);
+        // 分頁在背景時 requestAnimationFrame 會暫停，用計時器保證結果仍會出現
+        setTimeout(advance, perfStart - performance.now() + beats[ROLL_BEATS - 1] + 250);
     }
 
     function setButton(disabled, text) {
@@ -519,7 +978,7 @@
               vMax = parseInt($('max').value),
               n = parseInt($('qty').value);
 
-        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || isNaN(n) || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
 
         setButton(true, "輪盤轉動中...");
 
@@ -542,7 +1001,7 @@
         playRoll(vMin, vMax, winners, '', () => { setButton(false, "再次啟動抽獎"); updateExcludeInfo(); });
     }
 
-    // ---------- 本機：已中獎的不再中 ----------
+    // ---------- 本機：取消已中獎過的號碼 ----------
     const localWon = new Set();
     let localWonKey = '';
     function updateExcludeInfo() {
@@ -550,6 +1009,10 @@
         $('excludeInfo').textContent = on && localWon.size ? `已中獎 ${localWon.size} 個` : '';
         $('excludeResetBtn').hidden = !(on && localWon.size);
     }
+    // 範圍改變就視為新一輪，立即清空並更新顯示（不必等到下次抽獎）
+    ['min', 'max'].forEach(id => $(id).addEventListener('input', () => {
+        if (localWon.size && localWonKey !== parseInt($('min').value) + ':' + parseInt($('max').value)) { localWon.clear(); updateExcludeInfo(); }
+    }));
     $('excludeWon').onchange = () => { if (!$('excludeWon').checked) localWon.clear(); updateExcludeInfo(); };
     $('excludeResetBtn').onclick = () => { localWon.clear(); updateExcludeInfo(); };
 
@@ -815,7 +1278,7 @@
 
     async function hostDraw() {
         const vMin = parseInt($('min').value), vMax = parseInt($('max').value), n = parseInt($('qty').value);
-        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
+        if (isNaN(vMin) || isNaN(vMax) || vMin >= vMax || isNaN(n) || n <= 0 || n > (vMax - vMin + 1)) return alert("設定錯誤");
         if (online.animating || online.pendingRequest) return;
 
         const request = { requestId: crypto.randomUUID(), expectedVersion: online.version, min: vMin, max: vMax, count: n };
@@ -951,6 +1414,14 @@
     $('closeRoomBtn').onclick = closeRoom;
     $('copyBtn').onclick = copyLink;
     $('soundBtn').onclick = ensureAudio;
+
+    // 最後更新日期：GitHub Pages 會帶 Last-Modified，document.lastModified 即為部署時間
+    (() => {
+        const d = new Date(document.lastModified);
+        if (isNaN(d)) return;
+        const pad = n => String(n).padStart(2, '0');
+        $('lastUpdated').textContent = ` · 最後更新：${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    })();
     ensureAudio(); // 預設開啟（瀏覽器允許時立即生效）
 
     (function init() {
