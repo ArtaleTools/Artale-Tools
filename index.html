@@ -182,12 +182,14 @@
             line-height: 1.25;
             margin: 6px 0 var(--sp-6);
             letter-spacing: 3px;
+            padding-left: 3px; /* 抵銷末字後的字距 */
         }
 
         h2 {
             color: var(--text);
             margin: 0;
             letter-spacing: 1px;
+            padding-left: 1px; /* 抵銷末字後的字距 */
             font-size: var(--fs-heading);
             font-weight: 700;
             line-height: 1.3;
@@ -255,6 +257,7 @@
             border-radius: var(--r-sm);
             transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
         }
+        .input-control .stepper-btn:last-child { padding-bottom: 4px; } /* 「+」字形偏低，上移 2px */
         .stepper-btn:hover { background: var(--hover-tint); color: var(--primary-400); }
         .stepper-btn:active { background: var(--active-tint); transform: scale(0.9); }
         .stepper-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
@@ -312,6 +315,7 @@
         .exclude-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
         .exclude-row input[type="checkbox"]:hover { border-color: var(--primary); }
         .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; box-shadow: var(--focus-ring); }
+        .exclude-row .meta:empty { display: none; }
         .exclude-row .meta { color: var(--text-3); font-size: var(--fs-body); line-height: 1; font-variant-numeric: tabular-nums; }
         .exclude-row .small-btn { font-size: var(--fs-body); font-weight: 700; }
 
@@ -377,6 +381,7 @@
             animation: readyBeat 1.5s infinite ease-in-out;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
             letter-spacing: 2px;
+            padding-left: 2px; /* 抵銷末字後的字距 */
         }
 
         /* 裁掉字型上下留白，數字的排版中心才會等於字形中心，與指針對齊 */
@@ -392,15 +397,17 @@
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
         }
 
-        #display { --fs-win: 36px; }
-        #display:has(.win-text) { --pointer-y: calc(50% + (var(--fs-win) * 1.3 + var(--sp-2)) / 2); }
+        #display { --fs-win: 36px; --lh-win: 1.1; --win-nudge: calc(var(--fs-win) * 0.14); }
+        #display:has(.win-text) { padding-bottom: calc(var(--sp-3) + var(--win-nudge)); }
+        #display:has(.win-text) { --pointer-y: calc(50% + (var(--fs-win) * var(--lh-win) + var(--sp-2) - var(--win-nudge)) / 2); }
         /* 線上房間結果多一行排序說明（12px × 1.3 + 6px），號碼往上移一半 */
-        #display:has(.sort-note) { --pointer-y: calc(50% + (var(--fs-win) * 1.3 + var(--sp-2)) / 2 - (var(--fs-label) * 1.3 + 6px) / 2); }
+        #display:has(.sort-note) { --pointer-y: calc(50% + (var(--fs-win) * var(--lh-win) + var(--sp-2) - var(--win-nudge)) / 2 - (var(--fs-label) * 1.3 + 6px) / 2); }
 
         .win-text {
             font-family: var(--font);
             font-size: var(--fs-win);
-            line-height: 1.3;
+            line-height: var(--lh-win); /* 縮小行距留白，整組內容在視窗內上下置中 */
+            padding-left: 0.36em; /* 全形「！」右半為空白，左側補同寬才會視覺置中 */
             color: var(--text);
             margin-bottom: var(--sp-2);
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
@@ -408,9 +415,21 @@
         }
         .win-numbers.lucky-text {
             line-height: 1.2;
+            text-spacing-trim: trim-both;
+            /* 漸層字只畫在元素框內；框被裁到字高後，上下各留空間避免筆畫被切掉（對稱，不影響置中） */
+            padding: 0.2em 0;
+            margin: -0.2em 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.35em 0.33em;
             animation: resultIn 0.5s 0.08s var(--ease-out) both, shine 3s linear infinite;
         }
 
+        /* 每個號碼裁到數字字高，才能和指針精準對齊 */
+        .win-num { white-space: nowrap; text-box: trim-both cap alphabetic; }
+        /* 「、」字形在字寬中間，右側約 0.33em 是空白：以負邊距收掉，行尾就不會偏左；號碼間距由 gap 補回 */
+        .win-sep { display: inline-block; width: 1em; margin-right: -0.33em; }
         .sort-note { font-family: var(--font); font-size: var(--fs-label); line-height: 1.3; font-weight: 400; color: var(--text-4); margin-top: 6px; }
 
         /* ---------- 主按鈕 ---------- */
@@ -506,7 +525,7 @@
         /* ---------- 響應式 ---------- */
         @media (max-width: 380px) {
             .card { padding: 32px 18px; }
-            .subtitle { font-size: 28px; letter-spacing: 2px; }
+            .subtitle { font-size: 28px; letter-spacing: 2px; padding-left: 2px; }
             .input-grid { gap: var(--sp-3) 10px; padding: var(--sp-3); }
             .stepper-btn { width: 32px; }
             #display { --fs-display: 48px; }
@@ -560,25 +579,25 @@
             <div class="group">
                 <label>範圍(小)</label>
                 <div class="input-control">
-                    <button class="stepper-btn" onclick="step('min', -1)">-</button>
+                    <button class="stepper-btn" onclick="step('min', -1)" aria-label="減少">−</button>
                     <input type="number" id="min" value="1">
-                    <button class="stepper-btn" onclick="step('min', 1)">+</button>
+                    <button class="stepper-btn" onclick="step('min', 1)" aria-label="增加">+</button>
                 </div>
             </div>
             <div class="group">
                 <label>範圍(大)</label>
                 <div class="input-control">
-                    <button class="stepper-btn" onclick="step('max', -1)">-</button>
+                    <button class="stepper-btn" onclick="step('max', -1)" aria-label="減少">−</button>
                     <input type="number" id="max" value="50">
-                    <button class="stepper-btn" onclick="step('max', 1)">+</button>
+                    <button class="stepper-btn" onclick="step('max', 1)" aria-label="增加">+</button>
                 </div>
             </div>
             <div class="group" style="grid-column: span 2; margin-top: 10px;">
                 <label>抽取數量</label>
                 <div class="input-control">
-                    <button class="stepper-btn" onclick="step('qty', -1)">-</button>
+                    <button class="stepper-btn" onclick="step('qty', -1)" aria-label="減少">−</button>
                     <input type="number" id="qty" value="1">
-                    <button class="stepper-btn" onclick="step('qty', 1)">+</button>
+                    <button class="stepper-btn" onclick="step('qty', 1)" aria-label="增加">+</button>
                 </div>
             </div>
         </div>
@@ -709,7 +728,18 @@
         title.textContent = '恭喜中獎！';
         const nums = document.createElement('div');
         nums.className = 'win-numbers lucky-text';
-        nums.textContent = winners.join('、');
+        winners.forEach((w, i) => {
+            const item = document.createElement('span');
+            item.className = 'win-num';
+            item.textContent = w;
+            if (i < winners.length - 1) {
+                const sep = document.createElement('span');
+                sep.className = 'win-sep';
+                sep.textContent = '、';
+                item.append(sep);
+            }
+            nums.append(item);
+        });
         const children = [title, nums];
         if (note) {
             const n = document.createElement('div');
