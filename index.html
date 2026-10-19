@@ -870,14 +870,23 @@
                 offset: i / 4,
             })), { duration, easing: 'linear' });
         }
-        function popNumber(k) {
+        // 數字彈跳：本身尺寸隨進度放大（1 → 1.4 倍），每拍再彈出一下，越後面彈得越高、回彈越多次
+        function popNumber(k, duration) {
             const el = $('display').firstElementChild;
-            if (el && el.animate) el.animate([{ transform: `scale(${1 + 0.06 + 0.22 * k})` }, { transform: 'scale(1)' }], { duration: 120, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+            if (!el || !el.animate) return;
+            const base = 1 + 0.4 * k, peak = base + 0.05 + 0.45 * k * k;
+            el.animate([
+                { transform: `scale(${peak})` },
+                { transform: `scale(${base - (peak - base) * 0.35})`, offset: 0.45 },
+                { transform: `scale(${base + (peak - base) * 0.12})`, offset: 0.75 },
+                { transform: `scale(${base})` },
+            ], { duration, easing: 'ease-out', fill: 'forwards' });
         }
         function beatShake(c) {
-            const k = (c / (ROLL_BEATS - 1)) ** 1.5;
-            shakeCard(k, Math.max(50, beats[c] - beats[c - 1]));
-            popNumber(k);
+            const k = (c / (ROLL_BEATS - 1)) ** 2;
+            const duration = Math.max(50, beats[c] - beats[c - 1]);
+            shakeCard(k, duration);
+            popNumber(k, Math.max(110, duration));
         }
 
         let next = 0;
