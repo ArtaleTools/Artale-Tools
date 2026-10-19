@@ -279,7 +279,8 @@
 
         /* ---------- 排除已中獎 ---------- */
         .exclude-row {
-            display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 10px;
+            /* 第一行：勾選框＋已中獎數；第二行：重置 */
+            display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 0 14px;
             margin: 0 0 var(--sp-5); padding: var(--sp-3) 15px; font-size: var(--fs-body); font-weight: 700;
             background: var(--surface-sunken); border-radius: var(--r-lg);
             box-shadow: var(--shadow-panel);
@@ -310,7 +311,8 @@
         .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; box-shadow: var(--focus-ring); }
         .exclude-row .meta:empty { display: none; }
         .exclude-row .meta { color: var(--text-3); font-size: var(--fs-body); line-height: 1; font-variant-numeric: tabular-nums; }
-        .exclude-row .small-btn { font-size: var(--fs-body); font-weight: 700; }
+        .exclude-row::after { content: ""; flex-basis: 100%; order: 1; } /* 換行點 */
+        .exclude-row .small-btn { font-size: var(--fs-body); font-weight: 700; order: 2; margin-top: 10px; }
 
         /* ---------- 抽獎顯示窗（全站視覺核心） ---------- */
         #display {
