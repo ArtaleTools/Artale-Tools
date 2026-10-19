@@ -137,6 +137,7 @@
         }
 
         .container {
+            position: relative;
             perspective: 1000px;
             width: 90%;
             max-width: 400px;
@@ -512,6 +513,57 @@
             opacity: 0.6;
         }
 
+
+        /* ---------- 背景裝飾（純裝飾，不攔截點擊；動畫只用 transform / opacity） ---------- */
+        @keyframes wheelSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes ballFloat {
+            0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+            50% { transform: translateY(-18px) rotate(calc(var(--rot, 0deg) + 6deg)); }
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(0.7); }
+            50% { opacity: 0.9; transform: scale(1); }
+        }
+        .bg-deco { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+        /* 輪盤：呼應「幸運抽獎輪盤」，置於卡片正後方緩慢旋轉 */
+        .bg-wheel {
+            position: absolute; left: 50%; top: 50%;
+            width: min(150vmin, 1200px); height: min(150vmin, 1200px);
+            transform: translate(-50%, -50%);
+            opacity: 0.55;
+            animation: wheelSpin 160s linear infinite;
+        }
+        /* 號碼球：兩側緩慢漂浮 */
+        .bg-ball {
+            position: absolute; width: var(--size); height: var(--size);
+            left: var(--x); top: var(--y);
+            border-radius: 50%;
+            display: grid; place-content: center;
+            font: 900 calc(var(--size) * 0.38)/1 var(--font-num);
+            color: rgba(255, 255, 255, 0.55);
+            background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.35), rgba(255, 107, 129, 0.35) 18%, rgba(255, 71, 87, 0.22) 45%, rgba(163, 45, 56, 0.18) 75%, rgba(62, 31, 37, 0.1));
+            box-shadow: inset 0 -6px 14px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 71, 87, 0.12);
+            opacity: var(--o, 0.5);
+            animation: ballFloat var(--dur, 9s) ease-in-out var(--delay, 0s) infinite;
+        }
+        .bg-ball::before {
+            content: ""; position: absolute; inset: 22%;
+            border-radius: 50%; background: rgba(15, 15, 18, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+        .bg-ball span { position: relative; }
+        /* 星點 */
+        .bg-spark {
+            position: absolute; left: var(--x); top: var(--y);
+            width: 3px; height: 3px; border-radius: 50%;
+            background: #fff; box-shadow: 0 0 6px 1px rgba(255, 107, 129, 0.6);
+            animation: twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite;
+        }
+        @media (max-width: 700px) {
+            .bg-ball { --size: 44px !important; opacity: calc(var(--o, 0.5) * 0.6); }
+            .bg-ball.wide-only { display: none; }
+        }
+
         [hidden] { display: none !important; }
 
         /* ---------- 響應式 ---------- */
@@ -527,6 +579,33 @@
     </style>
 </head>
 <body>
+
+<div class="bg-deco" aria-hidden="true">
+    <svg class="bg-wheel" viewBox="0 0 1000 1000" fill="none">
+        <circle cx="500" cy="500" r="470" stroke="#ff4757" stroke-opacity="0.16" stroke-width="2"/>
+        <circle cx="500" cy="500" r="430" stroke="#ff4757" stroke-opacity="0.08" stroke-width="18"/>
+        <g stroke="#ff6b81" stroke-opacity="0.22" stroke-width="3" stroke-linecap="round"><line x1="500" y1="40" x2="500" y2="78" transform="rotate(0 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(10 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(20 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(30 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(40 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(50 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(60 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(70 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(80 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(90 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(100 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(110 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(120 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(130 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(140 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(150 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(160 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(170 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(180 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(190 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(200 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(210 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(220 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(230 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(240 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(250 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(260 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(270 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(280 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(290 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(300 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(310 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(320 500 500)"/><line x1="500" y1="40" x2="500" y2="78" transform="rotate(330 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(340 500 500)"/><line x1="500" y1="52" x2="500" y2="70" transform="rotate(350 500 500)"/></g>
+        <circle cx="500" cy="500" r="360" stroke="#ffffff" stroke-opacity="0.05" stroke-width="2" stroke-dasharray="4 14"/>
+        <g stroke="#ff4757" stroke-opacity="0.07" stroke-width="2"><line x1="500" y1="140" x2="500" y2="300" transform="rotate(15 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(45 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(75 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(105 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(135 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(165 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(195 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(225 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(255 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(285 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(315 500 500)"/><line x1="500" y1="140" x2="500" y2="300" transform="rotate(345 500 500)"/></g>
+        <circle cx="500" cy="500" r="140" stroke="#ff4757" stroke-opacity="0.08" stroke-width="2"/>
+    </svg>
+    <div class="bg-ball" style="--x:7%;--y:14%;--size:88px;--o:0.55;--dur:9s;--delay:0s;--rot:-12deg"><span>7</span></div>
+    <div class="bg-ball wide-only" style="--x:15%;--y:58%;--size:64px;--o:0.4;--dur:11s;--delay:-3s;--rot:8deg"><span>21</span></div>
+    <div class="bg-ball wide-only" style="--x:4%;--y:80%;--size:72px;--o:0.45;--dur:10s;--delay:-6s;--rot:14deg"><span>3</span></div>
+    <div class="bg-ball" style="--x:84%;--y:10%;--size:70px;--o:0.45;--dur:12s;--delay:-2s;--rot:10deg"><span>38</span></div>
+    <div class="bg-ball wide-only" style="--x:90%;--y:46%;--size:92px;--o:0.5;--dur:10s;--delay:-5s;--rot:-8deg"><span>15</span></div>
+    <div class="bg-ball wide-only" style="--x:78%;--y:78%;--size:60px;--o:0.4;--dur:9s;--delay:-1s;--rot:6deg"><span>27</span></div>
+    <i class="bg-spark" style="--x:12%;--y:30%;--dur:4s;--delay:0s"></i>
+    <i class="bg-spark" style="--x:24%;--y:18%;--dur:5s;--delay:-1.5s"></i>
+    <i class="bg-spark" style="--x:30%;--y:84%;--dur:3.5s;--delay:-2s"></i>
+    <i class="bg-spark" style="--x:9%;--y:46%;--dur:4.5s;--delay:-3s"></i>
+    <i class="bg-spark" style="--x:70%;--y:24%;--dur:4s;--delay:-0.5s"></i>
+    <i class="bg-spark" style="--x:88%;--y:28%;--dur:5s;--delay:-2.5s"></i>
+    <i class="bg-spark" style="--x:74%;--y:62%;--dur:3.8s;--delay:-1s"></i>
+    <i class="bg-spark" style="--x:93%;--y:88%;--dur:4.2s;--delay:-3.2s"></i>
+    <i class="bg-spark" style="--x:20%;--y:92%;--dur:4.6s;--delay:-1.8s"></i>
+    <i class="bg-spark" style="--x:62%;--y:8%;--dur:3.6s;--delay:-2.8s"></i>
+</div>
 
 <canvas id="confetti-canvas"></canvas>
 
@@ -611,7 +690,7 @@
             <ol id="historyList"></ol>
         </details>
         
-        <div class="footer-note">製作:OOKouun</div>
+        <div class="footer-note">製作:OOKouun<span id="lastUpdated"></span></div>
     </div>
 </div>
 
@@ -769,13 +848,16 @@
             playTick(150, 'sawtooth', 0.5, audioStart + beats[ROLL_BEATS - 1] / 1000);
         }
 
+        // 每拍抖一下；幅度從第 1 拍的約 0.3px 隨進度平方成長，最後一拍前達約 6px、1.6 度
         function beatShake(c) {
-            if (c <= 25 || !card.animate) return;
+            if (!card.animate) return;
+            const p = (c / (ROLL_BEATS - 1)) ** 2;
+            const a = 0.3 + 5.7 * p, r = 1.6 * p, dir = c % 2 ? 1 : -1;
             card.animate([
-                { transform: 'translate(-3px, 1px) rotate(-1deg)' },
-                { transform: 'translate(2px, -1px) rotate(1deg)', offset: 0.4 },
+                { transform: `translate(${-a * dir}px, ${a * 0.4}px) rotate(${-r * dir}deg)` },
+                { transform: `translate(${a * 0.7 * dir}px, ${-a * 0.3}px) rotate(${r * 0.6 * dir}deg)`, offset: 0.4 },
                 { transform: 'translate(0, 0) rotate(0deg)' },
-            ], { duration: Math.min(90, 50 + 20 * Math.max(0, c - 36)), easing: 'ease-out' });
+            ], { duration: Math.min(90 + 60 * p, 50 + 20 * Math.max(0, c - 36)), easing: 'ease-out' });
         }
 
         let next = 0;
@@ -1252,6 +1334,14 @@
     $('closeRoomBtn').onclick = closeRoom;
     $('copyBtn').onclick = copyLink;
     $('soundBtn').onclick = ensureAudio;
+
+    // 最後更新日期：GitHub Pages 會帶 Last-Modified，document.lastModified 即為部署時間
+    (() => {
+        const d = new Date(document.lastModified);
+        if (isNaN(d)) return;
+        const pad = n => String(n).padStart(2, '0');
+        $('lastUpdated').textContent = ` · 最後更新：${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    })();
     ensureAudio(); // 預設開啟（瀏覽器允許時立即生效）
 
     (function init() {
