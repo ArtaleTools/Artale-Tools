@@ -260,8 +260,29 @@
         }
         .small-btn:hover { border-color: var(--primary); color: #fff; }
         .small-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
-        .exclude-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; font-size: 14px; }
-        .exclude-row label { cursor: pointer; }
+        .exclude-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+            margin: 0 0 20px; padding: 10px 15px; font-size: 14px;
+            background: rgba(0,0,0,0.3); border-radius: 15px;
+        }
+        .exclude-row label { display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ddd; user-select: none; }
+        .exclude-row input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            flex: none; width: 22px; height: 22px; margin: 0; padding: 0;
+            background: #121217; border: 1px solid #444; border-radius: 8px;
+            display: grid; place-content: center; cursor: pointer;
+            transition: border-color 0.3s, background 0.2s;
+        }
+        .exclude-row input[type="checkbox"]::after {
+            content: ""; width: 10px; height: 6px; margin-top: -2px;
+            border-left: 3px solid #fff; border-bottom: 3px solid #fff;
+            transform: rotate(-45deg) scale(0); transition: transform 0.15s;
+        }
+        .exclude-row input[type="checkbox"]:checked { background: var(--primary); border-color: var(--primary); }
+        .exclude-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+        .exclude-row input[type="checkbox"]:hover,
+        .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; }
+        .exclude-row .meta { color: #999; font-size: 12px; margin-left: auto; }
         .notice { min-height: 18px; font-size: 13px; color: #ffa502; margin: -10px 0 12px; }
         .history { margin-top: 12px; text-align: left; font-size: 13px; }
         .history summary { cursor: pointer; color: #999; }
