@@ -260,6 +260,8 @@
         }
         .small-btn:hover { border-color: var(--primary); color: #fff; }
         .small-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
+        .exclude-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; font-size: 14px; }
+        .exclude-row label { cursor: pointer; }
         .notice { min-height: 18px; font-size: 13px; color: #ffa502; margin: -10px 0 12px; }
         .history { margin-top: 12px; text-align: left; font-size: 13px; }
         .history summary { cursor: pointer; color: #999; }
@@ -340,6 +342,12 @@
             </div>
         </div>
         
+        <div class="exclude-row" id="excludeRow">
+            <label><input type="checkbox" id="excludeWon"> 已中獎的不再中</label>
+            <span id="excludeInfo" class="meta"></span>
+            <button class="small-btn" id="excludeResetBtn" type="button" hidden>重置</button>
+        </div>
+
         <div id="display"><span class="ready-text">READY</span></div>
         
         <div class="notice" id="notice"></div>
@@ -515,15 +523,35 @@
 
         setButton(true, "輪盤轉動中...");
 
+        const exclude = $('excludeWon').checked;
+        if (exclude && localWonKey !== vMin + ':' + vMax) { localWon.clear(); localWonKey = vMin + ':' + vMax; }
         let pool = Array.from({length: vMax - vMin + 1}, (_, i) => i + vMin);
+        if (exclude) pool = pool.filter(v => !localWon.has(v));
+        if (n > pool.length) {
+            setButton(false, "啟動抽獎");
+            updateExcludeInfo();
+            return alert(`剩餘可抽號碼只有 ${pool.length} 個，少於抽取數量 ${n}，請按「重置」或調整設定`);
+        }
         for (let i = pool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [pool[i], pool[j]] = [pool[j], pool[i]];
         }
         const winners = pool.slice(0, n).sort((a,b)=>a-b);
+        if (exclude) winners.forEach(w => localWon.add(w));
 
-        playRoll(vMin, vMax, winners, '', () => setButton(false, "再次啟動抽獎"));
+        playRoll(vMin, vMax, winners, '', () => { setButton(false, "再次啟動抽獎"); updateExcludeInfo(); });
     }
+
+    // ---------- 本機：已中獎的不再中 ----------
+    const localWon = new Set();
+    let localWonKey = '';
+    function updateExcludeInfo() {
+        const on = $('excludeWon').checked;
+        $('excludeInfo').textContent = on && localWon.size ? `已中獎 ${localWon.size} 個` : '';
+        $('excludeResetBtn').hidden = !(on && localWon.size);
+    }
+    $('excludeWon').onchange = () => { if (!$('excludeWon').checked) localWon.clear(); updateExcludeInfo(); };
+    $('excludeResetBtn').onclick = () => { localWon.clear(); updateExcludeInfo(); };
 
     function startDraw() {
         ensureAudio();
@@ -891,6 +919,7 @@
         $('tabLocal').classList.toggle('active', mode === 'local');
         $('tabOnline').classList.toggle('active', mode === 'online');
         $('onlinePanel').hidden = mode !== 'online';
+        $('excludeRow').hidden = mode !== 'local';
         if (mode === 'local') {
             $('btn').hidden = false;
             document.querySelector('.input-grid').classList.remove('locked');
