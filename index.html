@@ -421,7 +421,7 @@
             font-family: var(--font);
             font-size: var(--fs-win);
             line-height: 1.1;
-            padding-left: 0.36em; /* 全形「！」右半為空白，左側補同寬才會視覺置中 */
+            padding-left: 0.18em; /* 🎉 字形偏右，左側補白讓整行視覺置中 */
             color: var(--text);
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.6);
             animation: winTitleFade 2s var(--ease-out) forwards;
@@ -446,8 +446,23 @@
 
         /* 每個號碼裁到數字字高，才能和指針精準對齊 */
         .win-num { white-space: nowrap; text-box: trim-both cap alphabetic; }
-        /* 「、」只保留在文字內容（複製時仍有分隔），畫面上以間距分隔號碼 */
+        /* 文字內容裡的「、」不顯示（複製時仍有）；畫面上的「、」只畫在同一行的號碼之間，行尾不會出現 */
         .win-sep { display: none; }
+        .win-row > .win-num + .win-num { position: relative; }
+        /* 自製「、」：與數字同粗細、同顏色與光暈的短斜筆畫，置於號碼間距正中並貼齊底線 */
+        .win-row > .win-num + .win-num::before {
+            content: "";
+            position: absolute;
+            right: calc(100% + 0.3em - 0.05em); /* 間距 0.6em 的正中（扣掉筆畫半寬） */
+            bottom: 0.01em;
+            width: 0.1em;   /* 約等於 Courier 粗體數字的筆畫寬 */
+            height: 0.24em;
+            border-radius: 0.05em 0.05em 0.06em 0.06em;
+            background: var(--text);
+            box-shadow: 0 0 0.15em rgba(255, 255, 255, 0.45);
+            transform: rotate(-42deg);
+            transform-origin: 50% 100%;
+        }
         .sort-note { font-family: var(--font); font-size: var(--fs-label); line-height: 1.3; font-weight: 400; color: var(--text-4); margin-top: 6px; }
 
         /* ---------- 主按鈕 ---------- */
@@ -838,7 +853,7 @@
     function showWinners(winners, note) {
         const title = document.createElement('div');
         title.className = 'win-text';
-        title.textContent = '恭喜中獎！';
+        title.textContent = '恭喜中獎🎉';
         const nums = document.createElement('div');
         nums.className = 'win-numbers';
         // 每行數量：讓各行盡量平均（4 → 2+2、5 → 3+2、9 → 3+3+3），每行各自置中
