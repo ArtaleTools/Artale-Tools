@@ -5,11 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artale 繁中槍手群抽獎輪盤</title>
     <style>
+        /* ================================================================
+           Design Tokens：色票全部取自原版（標「= 原」），只補同色相明暗階
+           ================================================================ */
         :root {
-            --primary: #ff4757;
-            --accent: #ffffff;
-            --bg: #0f0f12;
-            --card-bg: #1e1e26;
+            /* Primary：原版主紅 #ff4757 為基準 */
+            --primary: #ff4757;            /* = 原 --primary */
+            --primary-400: #ff6b81;        /* = 原按鈕漸層亮端 */
+            --primary-600: #e83d4c;        /* 新增：按鈕漸層暗端 */
+            --primary-700: #a32d38;        /* = 原按鈕立體底 */
+            --primary-900: #3e1f25;        /* = 原背景光暈 */
+            --primary-a10: rgba(255, 71, 87, 0.10); /* = 原 hover */
+            --primary-a15: rgba(255, 71, 87, 0.15); /* = 原分頁底 */
+            --primary-a30: rgba(255, 71, 87, 0.30); /* = 原卡片光暈 */
+            --primary-a50: rgba(255, 71, 87, 0.50); /* = 原標題光暈 */
+
+            /* Accent：原版白色流光 */
+            --accent: #ffffff;             /* = 原 --accent */
+
+            /* Background / Surface */
+            --bg: #0f0f12;                 /* = 原 --bg */
+            --card-bg: #1e1e26;            /* = 原 --card-bg */
+            --surface-card: rgba(30, 30, 38, 0.95); /* = 原卡片底 */
+            --surface-sunken: rgba(0, 0, 0, 0.3);   /* = 原面板底 */
+            --surface-field: #121217;      /* = 原輸入框底 */
+
+            /* Border */
+            --border: #444;                /* = 原 */
+            --border-strong: #555;         /* = 原 */
+            --border-subtle: #2a2a33;      /* = 原紀錄分隔線 */
+            --highlight: rgba(255, 255, 255, 0.06); /* 新增：表面上緣高光 */
+
+            /* Text */
+            --text: #ffffff;               /* = 原 */
+            --text-2: #dddddd;             /* = 原 */
+            --text-3: #aaaaaa;             /* = 原 */
+            --text-4: #888888;             /* = 原 */
+            --text-5: #666666;             /* = 原 */
+
+            /* Status（原版） */
+            --ok: #2ed573;
+            --warn: #ffa502;
+            --pill-bg: #333;
+
+            /* Interactive states */
+            --hover-tint: var(--primary-a10);
+            --active-tint: var(--primary-a15);
+            --disabled-bg: #444;           /* = 原停用按鈕 */
+            --focus-ring: 0 0 0 3px var(--primary-a30);
+
+            /* Typography（字體家族沿用原版） */
+            --font: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            --font-num: 'Courier New', monospace;
+            --fs-display: 60px;
+            --fs-title: 32px;
+            --fs-heading: 20px;
+            --fs-value: 18px;
+            --fs-body: 14px;
+            --fs-small: 13px;
+            --fs-label: 12px;
+
+            /* Spacing（4px 基準） */
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+
+            /* Radius */
+            --r-sm: 8px; --r-md: 12px; --r-lg: 15px; --r-xl: 24px; --r-pill: 999px;
+
+            /* Elevation */
+            --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+            --shadow-panel: inset 0 1px 0 var(--highlight), 0 1px 0 rgba(0, 0, 0, 0.35);
+            --shadow-card: 0 0 50px var(--primary-a30), 0 20px 50px rgba(0, 0, 0, 0.45);
+
+            /* Motion */
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --dur-fast: 0.15s;
+            --dur: 0.25s;
         }
 
         @keyframes cardEntrance {
@@ -35,19 +105,33 @@
             100% { transform: translate(-1px, -1px) rotate(0deg); }
         }
 
-        body { 
-            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; 
-            background: var(--bg);
-            background-image: radial-gradient(circle at 50% -20%, #3e1f25, #0f0f12);
-            color: white; 
-            display: flex; 
-            justify-content: center; 
+        @keyframes resultIn {
+            0% { opacity: 0; transform: translateY(8px) scale(0.92); }
+            60% { opacity: 1; transform: translateY(0) scale(1.04); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ---------- 版面 ---------- */
+        body {
+            font-family: var(--font);
+            background-color: var(--bg);
+            /* 原版頂部光暈 + 極淡底部回光 + 細點紋理（全為靜態） */
+            background-image:
+                radial-gradient(circle at 50% -20%, var(--primary-900), var(--bg) 75%),
+                radial-gradient(ellipse at 50% 120%, rgba(62, 31, 37, 0.45), transparent 60%),
+                radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+            background-size: auto, auto, 4px 4px;
+            background-attachment: fixed;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             overflow-x: hidden;
-            padding: 24px 0;
+            padding: var(--sp-6) 0;
             box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
         }
 
         #confetti-canvas {
@@ -65,106 +149,127 @@
             width: 90%;
             max-width: 400px;
             z-index: 10;
-            animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+            animation: cardEntrance 0.8s var(--ease-out) both;
         }
 
-        .card { 
-            background: rgba(30, 30, 38, 0.95); 
-            padding: 40px 30px; 
-            border-radius: 24px; 
+        .card {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 120px),
+                var(--surface-card);
+            padding: 40px 30px;
+            border-radius: var(--r-xl);
             border: 2px solid var(--primary);
-            box-shadow: 0 0 50px rgba(255, 71, 87, 0.3);
+            box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             text-align: center;
-            backdrop-filter: blur(10px);
             position: relative;
         }
 
-        .lucky-text { 
-            background: linear-gradient(110deg, #ff4757 25%, #ffffff 45%, #ff4757 50%, #ffffff 55%, #ff4757 75%);
+        /* ---------- 標題 ---------- */
+        .lucky-text {
+            background: linear-gradient(110deg, var(--primary) 25%, var(--accent) 45%, var(--primary) 50%, var(--accent) 55%, var(--primary) 75%);
             background-size: 200% auto;
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 900; 
+            font-weight: 900;
             animation: shine 3s linear infinite;
-            filter: drop-shadow(0 0 5px rgba(255, 71, 87, 0.5));
+            filter: drop-shadow(0 0 5px var(--primary-a50));
             display: inline-block;
         }
 
-        .subtitle { 
-            font-size: 32px; 
-            margin: 5px 0 25px 0; 
-            letter-spacing: 3px; 
+        .subtitle {
+            font-size: var(--fs-title);
+            line-height: 1.25;
+            margin: 6px 0 var(--sp-6);
+            letter-spacing: 3px;
         }
 
-        h2 { 
-            color: white; 
-            margin: 0; 
-            letter-spacing: 1px; 
-            font-size: 20px;
+        h2 {
+            color: var(--text);
+            margin: 0;
+            letter-spacing: 1px;
+            font-size: var(--fs-heading);
+            font-weight: 700;
+            line-height: 1.3;
             opacity: 0.8;
         }
 
-        /* --- 增減控制組優化 --- */
+        /* ---------- 分頁 ---------- */
+        .mode-tabs { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+        .mode-tab {
+            flex: 1; padding: 9px 0; border-radius: 10px; border: 1px solid var(--border);
+            background: var(--surface-field); color: var(--text-3);
+            font: 700 var(--fs-body)/1.2 var(--font); cursor: pointer;
+            box-shadow: inset 0 1px 0 var(--highlight);
+            transition: border-color var(--dur), color var(--dur), background-color var(--dur);
+        }
+        .mode-tab:hover { color: var(--text); border-color: var(--border-strong); }
+        .mode-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+        .mode-tab.active { border-color: var(--primary); color: var(--text); background: var(--primary-a15); }
+
+        /* ---------- 控制面板 ---------- */
         .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 15px;
+            gap: var(--sp-4) 15px;
+            margin-bottom: var(--sp-4);
+            background: var(--surface-sunken);
+            padding: var(--sp-4) 15px;
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-panel);
+        }
+        .input-grid .group[style] { margin-top: 0 !important; } /* 間距統一由 grid gap 控制 */
+
+        label {
+            display: block; font-size: var(--fs-label); font-weight: 700; line-height: 1.4;
+            color: var(--text-4); letter-spacing: 0.5px; margin-bottom: 6px; text-align: left;
         }
 
         .input-control {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #121217;
-            border-radius: 12px;
-            border: 1px solid #444;
+            background: var(--surface-field);
+            border-radius: var(--r-md);
+            border: 1px solid var(--border);
             padding: 2px;
-            transition: border-color 0.3s;
+            box-shadow: var(--shadow-inset);
+            transition: border-color var(--dur), box-shadow var(--dur);
         }
-
-        .input-control:focus-within {
-            border-color: var(--primary);
-        }
+        .input-control:hover { border-color: var(--border-strong); }
+        .input-control:focus-within { border-color: var(--primary); box-shadow: var(--shadow-inset), var(--focus-ring); }
 
         .stepper-btn {
             background: transparent;
             border: none;
             color: var(--primary);
-            font-size: 20px;
-            font-weight: bold;
-            width: 35px;
-            height: 35px;
+            font: 700 20px/1 var(--font);
+            width: 36px;
+            height: 36px;
+            flex: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             user-select: none;
-            border-radius: 8px;
-            transition: background 0.2s;
+            border-radius: var(--r-sm);
+            transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
         }
+        .stepper-btn:hover { background: var(--hover-tint); color: var(--primary-400); }
+        .stepper-btn:active { background: var(--active-tint); transform: scale(0.9); }
+        .stepper-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-        .stepper-btn:hover {
-            background: rgba(255, 71, 87, 0.1);
-        }
-
-        .stepper-btn:active {
-            transform: scale(0.9);
-        }
-
-        input { 
-            width: 40px; 
+        input {
+            width: 40px;
+            min-width: 0;
             flex-grow: 1;
-            padding: 8px 0; 
+            padding: 8px 0;
             border: none;
-            background: transparent; 
-            color: #ffffff; 
-            font-weight: bold; 
-            font-size: 18px; 
-            text-align: center; 
+            background: transparent;
+            color: var(--text);
+            font: 700 var(--fs-value)/1.2 var(--font);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
             outline: none;
         }
 
@@ -176,124 +281,237 @@
         }
         input[type=number] { -moz-appearance: textfield; }
 
-        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; text-align: left; }
+        /* ---------- 排除已中獎 ---------- */
+        .exclude-row {
+            display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 10px;
+            margin: 0 0 var(--sp-5); padding: var(--sp-3) 15px; font-size: var(--fs-body); font-weight: 700;
+            background: var(--surface-sunken); border-radius: var(--r-lg);
+            box-shadow: var(--shadow-panel);
+        }
+        .exclude-row label {
+            display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0;
+            font-size: var(--fs-body); letter-spacing: 0; text-align: center; cursor: pointer; color: var(--text); user-select: none;
+        }
+        .exclude-row input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            flex: none; width: 22px; height: 22px; margin: 0; padding: 0;
+            background: var(--surface-field); border: 1px solid var(--border); border-radius: var(--r-sm);
+            box-shadow: var(--shadow-inset);
+            display: grid; place-content: center; cursor: pointer;
+            transition: border-color var(--dur), background-color var(--dur-fast), box-shadow var(--dur);
+        }
+        .exclude-row input[type="checkbox"]::after {
+            content: ""; width: 10px; height: 6px; margin-top: -2px;
+            border-left: 3px solid var(--text); border-bottom: 3px solid var(--text);
+            transform: rotate(-45deg) scale(0); transition: transform var(--dur-fast) var(--ease-out);
+        }
+        .exclude-row input[type="checkbox"]:checked {
+            background: linear-gradient(180deg, var(--primary-400), var(--primary));
+            border-color: var(--primary); box-shadow: 0 2px 8px var(--primary-a30);
+        }
+        .exclude-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+        .exclude-row input[type="checkbox"]:hover { border-color: var(--primary); }
+        .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; box-shadow: var(--focus-ring); }
+        .exclude-row .meta { color: var(--text-3); font-size: var(--fs-body); line-height: 1; font-variant-numeric: tabular-nums; }
+        .exclude-row .small-btn { font-size: var(--fs-body); font-weight: 700; }
 
-        /* --- 顯示與按鈕 --- */
-        #display { 
-            font-size: 60px; 
-            color: #ffffff; 
-            margin: 25px 0; 
-            font-family: 'Courier New', monospace; 
+        /* ---------- 抽獎顯示窗（全站視覺核心） ---------- */
+        #display {
+            position: relative;
+            font-size: var(--fs-display);
+            color: var(--text);
+            margin: var(--sp-5) 0 var(--sp-6);
+            padding: var(--sp-3);
+            font-family: var(--font-num);
             font-weight: 900;
+            font-variant-numeric: tabular-nums;
             min-height: 140px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             line-height: 1.3;
+            overflow-wrap: anywhere;
+            border-radius: 18px;
+            /* 內凹視窗：深底 + 底部主色微光，框住號碼 */
+            background:
+                radial-gradient(ellipse at 50% 120%, var(--primary-a15), transparent 65%),
+                linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.25));
+            border: 1px solid var(--border-subtle);
+            box-shadow:
+                inset 0 2px 8px rgba(0, 0, 0, 0.6),
+                inset 0 -1px 0 var(--highlight);
+            transition: border-color var(--dur);
         }
+        /* 視窗兩側的指針 */
+        #display::before,
+        #display::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 0;
+            height: 0;
+            margin-top: -7px;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            opacity: 0.85;
+            transition: opacity var(--dur);
+        }
+        #display::before { left: 0; border-left: 9px solid var(--primary); }
+        #display::after { right: 0; border-right: 9px solid var(--primary); }
+        #display:has(.ready-text)::before,
+        #display:has(.ready-text)::after { opacity: 0.35; }
+
+        /* 狀態：轉動中 */
+        #display:has(.rolling-num) {
+            border-color: var(--primary-a50);
+            box-shadow:
+                inset 0 2px 8px rgba(0, 0, 0, 0.6),
+                inset 0 0 24px var(--primary-a15);
+        }
+        /* 狀態：結果 */
+        #display:has(.win-text) { border-color: var(--primary-a50); }
 
         .ready-text {
             animation: readyBeat 1.5s infinite ease-in-out;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .rolling-num {
+            font-size: 70px;
+            line-height: 1.2;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
         }
 
         .win-text {
+            font-family: var(--font);
             font-size: 36px;
-            color: #ffffff;
-            margin-bottom: 10px;
+            line-height: 1.3;
+            color: var(--text);
+            margin-bottom: var(--sp-2);
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            animation: resultIn 0.45s var(--ease-out) both;
+        }
+        .win-numbers.lucky-text {
+            line-height: 1.2;
+            animation: resultIn 0.5s 0.08s var(--ease-out) both, shine 3s linear infinite;
         }
 
-        .draw-btn { 
-            width: 100%; 
-            padding: 18px; 
-            background: linear-gradient(45deg, #ff4757, #ff6b81);
-            border: none; 
-            color: white; 
-            font-size: 22px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            border-radius: 15px; 
-            box-shadow: 0 6px 0 #a32d38;
-            transition: all 0.2s;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-        }
+        .sort-note { font-family: var(--font); font-size: var(--fs-label); font-weight: 400; color: var(--text-4); margin-top: 6px; }
 
+        /* ---------- 主按鈕 ---------- */
+        .draw-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(180deg, var(--primary-400), var(--primary) 55%, var(--primary-600));
+            border: none;
+            color: var(--text);
+            font: 700 22px/1.2 var(--font);
+            letter-spacing: 2px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+            border-radius: var(--r-lg);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                0 6px 0 var(--primary-700),
+                0 12px 20px rgba(0, 0, 0, 0.35);
+            transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast);
+            margin-bottom: var(--sp-5);
+            -webkit-tap-highlight-color: transparent;
+        }
         .draw-btn:hover:not(:disabled) {
-            filter: brightness(1.1);
+            filter: brightness(1.08);
             transform: translateY(-2px);
-            box-shadow: 0 8px 0 #a32d38;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                0 8px 0 var(--primary-700),
+                0 16px 24px rgba(0, 0, 0, 0.35);
+        }
+        .draw-btn:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 2px 0 var(--primary-700),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .draw-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+        /* 停用即轉動中（Loading） */
+        .draw-btn:disabled {
+            background: var(--disabled-bg);
+            color: var(--text-2);
+            text-shadow: none;
+            box-shadow: inset 0 1px 0 var(--highlight), 0 6px 0 #2e2e36;
+            cursor: not-allowed;
         }
 
-        .draw-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #a32d38; }
-        .draw-btn:disabled { background: #444; box-shadow: none; opacity: 0.8; cursor: not-allowed; }
+        /* ---------- 次要按鈕與標籤 ---------- */
+        .small-btn {
+            background: transparent; border: 1px solid var(--border-strong); color: var(--text-2); border-radius: var(--r-sm);
+            padding: 6px 10px; font: 400 var(--fs-small)/1.3 var(--font); cursor: pointer; white-space: nowrap;
+            transition: border-color var(--dur), color var(--dur), background-color var(--dur);
+        }
+        .small-btn:hover { border-color: var(--primary); color: var(--text); background: var(--hover-tint); }
+        .small-btn:active { background: var(--active-tint); }
+        .small-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+        .small-btn.primary { background: var(--primary); border-color: var(--primary); color: var(--text); font-weight: 700; }
+        .small-btn.primary:hover { background: var(--primary-400); border-color: var(--primary-400); }
+
+        .pill { font-size: var(--fs-label); padding: 2px 10px; border-radius: var(--r-pill); background: var(--pill-bg); color: #ccc; white-space: nowrap; }
+        .pill.ok { background: rgba(46, 213, 115, 0.2); color: var(--ok); }
+        .pill.warn { background: rgba(255, 165, 2, 0.2); color: var(--warn); }
+        .pill.bad { background: rgba(255, 71, 87, 0.2); color: var(--primary-400); }
+
+        /* ---------- 線上房間 ---------- */
+        .online-panel {
+            background: var(--surface-sunken); border-radius: var(--r-lg); padding: var(--sp-3) 15px;
+            margin-bottom: var(--sp-4); text-align: left; font-size: var(--fs-small); line-height: 1.5; color: #bbb;
+            box-shadow: var(--shadow-panel);
+        }
+        .online-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin: var(--sp-1) 0; flex-wrap: wrap; }
+        .room-code { font-family: var(--font-num); color: var(--text); word-break: break-all; }
+        #turnstile-box { margin-top: 10px; display: flex; justify-content: center; }
+
+        /* ---------- 其他 ---------- */
+        .notice { min-height: 18px; font-size: var(--fs-small); color: var(--warn); margin: -10px 0 var(--sp-3); }
+        .history { margin-top: var(--sp-3); text-align: left; font-size: var(--fs-small); }
+        .history summary { cursor: pointer; color: #999; }
+        .history ol { list-style: none; padding: 0; margin: var(--sp-2) 0 0; max-height: 180px; overflow-y: auto; }
+        .history li { padding: 6px 0; border-top: 1px solid var(--border-subtle); color: #ccc; }
+        .history .meta { color: #777; font-size: var(--fs-label); }
+        .input-grid.locked { opacity: 0.5; pointer-events: none; }
 
         .footer-note {
-            font-size: 12px;
-            color: #666;
+            font-size: var(--fs-label);
+            color: var(--text-5);
             margin-top: 10px;
             opacity: 0.6;
         }
 
-        /* --- 線上房間 --- */
-        .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-        .mode-tab {
-            flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid #444;
-            background: #121217; color: #aaa; font-size: 14px; font-weight: bold; cursor: pointer;
-        }
-        .mode-tab.active { border-color: var(--primary); color: #fff; background: rgba(255, 71, 87, 0.15); }
-        .online-panel {
-            background: rgba(0,0,0,0.3); border-radius: 15px; padding: 12px 15px;
-            margin-bottom: 16px; text-align: left; font-size: 13px; color: #bbb;
-        }
-        .online-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
-        .room-code { font-family: 'Courier New', monospace; color: #fff; word-break: break-all; }
-        .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #333; color: #ccc; white-space: nowrap; }
-        .pill.ok { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
-        .pill.warn { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
-        .pill.bad { background: rgba(255, 71, 87, 0.2); color: #ff6b81; }
-        .small-btn {
-            background: transparent; border: 1px solid #555; color: #ddd; border-radius: 8px;
-            padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
-        }
-        .small-btn:hover { border-color: var(--primary); color: #fff; }
-        .small-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
-        .exclude-row {
-            display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 10px;
-            margin: 0 0 20px; padding: 10px 15px; font-size: 14px; font-weight: bold;
-            background: rgba(0,0,0,0.3); border-radius: 15px;
-        }
-        .exclude-row label { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-size: 14px; font-weight: bold; text-align: center; cursor: pointer; color: #fff; user-select: none; }
-        .exclude-row input[type="checkbox"] {
-            appearance: none; -webkit-appearance: none;
-            flex: none; width: 22px; height: 22px; margin: 0; padding: 0;
-            background: #121217; border: 1px solid #444; border-radius: 8px;
-            display: grid; place-content: center; cursor: pointer;
-            transition: border-color 0.3s, background 0.2s;
-        }
-        .exclude-row input[type="checkbox"]::after {
-            content: ""; width: 10px; height: 6px; margin-top: -2px;
-            border-left: 3px solid #fff; border-bottom: 3px solid #fff;
-            transform: rotate(-45deg) scale(0); transition: transform 0.15s;
-        }
-        .exclude-row input[type="checkbox"]:checked { background: var(--primary); border-color: var(--primary); }
-        .exclude-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
-        .exclude-row input[type="checkbox"]:hover,
-        .exclude-row input[type="checkbox"]:focus-visible { border-color: var(--primary); outline: none; }
-        .exclude-row .meta { color: #aaa; font-size: 14px; font-weight: bold; line-height: 1; }
-        .exclude-row .small-btn { font-size: 14px; font-weight: bold; }
-        .notice { min-height: 18px; font-size: 13px; color: #ffa502; margin: -10px 0 12px; }
-        .history { margin-top: 12px; text-align: left; font-size: 13px; }
-        .history summary { cursor: pointer; color: #999; }
-        .history ol { list-style: none; padding: 0; margin: 8px 0 0; max-height: 180px; overflow-y: auto; }
-        .history li { padding: 6px 0; border-top: 1px solid #2a2a33; color: #ccc; }
-        .history .meta { color: #777; font-size: 12px; }
-        .sort-note { font-size: 12px; color: #888; margin-top: 6px; }
-        .input-grid.locked { opacity: 0.5; pointer-events: none; }
-        #turnstile-box { margin-top: 10px; display: flex; justify-content: center; }
         [hidden] { display: none !important; }
+
+        /* ---------- 響應式 ---------- */
+        @media (max-width: 380px) {
+            .card { padding: 32px 18px; }
+            .subtitle { font-size: 28px; letter-spacing: 2px; }
+            .input-grid { gap: var(--sp-3) 10px; padding: var(--sp-3); }
+            .stepper-btn { width: 32px; }
+            #display { --fs-display: 48px; }
+            .rolling-num { font-size: 56px; }
+            .win-text { font-size: 30px; }
+        }
+
+        /* ---------- 減少動態 ---------- */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            #mainCard { animation: none !important; }
+            #confetti-canvas { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -509,8 +727,7 @@
 
         function roll() {
             count++;
-            showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin),
-                'font-size: 70px; text-shadow: 0 0 15px rgba(255,255,255,0.5);');
+            showNumber(String(Math.floor(Math.random() * (vMax - vMin + 1)) + vMin), '', 'rolling-num');
             playTick(400 + count * 15, 'square', 0.05);
 
             if (count > 25) card.style.animation = "shake 0.1s infinite";
