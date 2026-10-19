@@ -349,7 +349,7 @@
         #display::after {
             content: "";
             position: absolute;
-            top: 50%;
+            top: var(--pointer-y, 50%);
             width: 0;
             height: 0;
             margin-top: -7px;
@@ -379,15 +379,27 @@
             letter-spacing: 2px;
         }
 
+        /* 裁掉字型上下留白，數字的排版中心才會等於字形中心，與指針對齊 */
+        .ready-text,
+        .rolling-num,
+        .win-numbers {
+            text-box: trim-both cap alphabetic;
+        }
+
         .rolling-num {
             font-size: 70px;
             line-height: 1.2;
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
         }
 
+        #display { --fs-win: 36px; }
+        #display:has(.win-text) { --pointer-y: calc(50% + (var(--fs-win) * 1.3 + var(--sp-2)) / 2); }
+        /* 線上房間結果多一行排序說明（12px × 1.3 + 6px），號碼往上移一半 */
+        #display:has(.sort-note) { --pointer-y: calc(50% + (var(--fs-win) * 1.3 + var(--sp-2)) / 2 - (var(--fs-label) * 1.3 + 6px) / 2); }
+
         .win-text {
             font-family: var(--font);
-            font-size: 36px;
+            font-size: var(--fs-win);
             line-height: 1.3;
             color: var(--text);
             margin-bottom: var(--sp-2);
@@ -399,7 +411,7 @@
             animation: resultIn 0.5s 0.08s var(--ease-out) both, shine 3s linear infinite;
         }
 
-        .sort-note { font-family: var(--font); font-size: var(--fs-label); font-weight: 400; color: var(--text-4); margin-top: 6px; }
+        .sort-note { font-family: var(--font); font-size: var(--fs-label); line-height: 1.3; font-weight: 400; color: var(--text-4); margin-top: 6px; }
 
         /* ---------- 主按鈕 ---------- */
         .draw-btn {
@@ -499,7 +511,7 @@
             .stepper-btn { width: 32px; }
             #display { --fs-display: 48px; }
             .rolling-num { font-size: 56px; }
-            .win-text { font-size: 30px; }
+            #display { --fs-win: 30px; }
         }
     </style>
 </head>
