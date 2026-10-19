@@ -365,7 +365,7 @@
         </div>
         
         <div class="exclude-row" id="excludeRow">
-            <label><input type="checkbox" id="excludeWon"> 已中獎的不再中</label>
+            <label><input type="checkbox" id="excludeWon"> 取消已中獎過的號碼</label>
             <span id="excludeInfo" class="meta"></span>
             <button class="small-btn" id="excludeResetBtn" type="button" hidden>重置</button>
         </div>
@@ -564,7 +564,7 @@
         playRoll(vMin, vMax, winners, '', () => { setButton(false, "再次啟動抽獎"); updateExcludeInfo(); });
     }
 
-    // ---------- 本機：已中獎的不再中 ----------
+    // ---------- 本機：取消已中獎過的號碼 ----------
     const localWon = new Set();
     let localWonKey = '';
     function updateExcludeInfo() {
